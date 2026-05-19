@@ -29,3 +29,7 @@ __pycache__/
 
 # pytest
 .pytest_cache/
+
+# 데이터 파일 (외부반출 금지!)
+data/
+*.csv
