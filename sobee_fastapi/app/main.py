@@ -1,16 +1,20 @@
 from fastapi import FastAPI
-from app.api import avatar, recommend, lifecycle
-from app.core.config import settings
+from fastapi.middleware.cors import CORSMiddleware
+from app.api import avatar, recommend, lifecycle, report 
 
 app = FastAPI(
     title="Sobee FastAPI - B조",
     version="0.1.0"
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(avatar.router, prefix="/api/avatar", tags=["avatar"])
 app.include_router(recommend.router, prefix="/api/recommend", tags=["recommend"])
 app.include_router(lifecycle.router, prefix="/api/lifecycle", tags=["lifecycle"])
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
+app.include_router(report.router, tags=["report"])  

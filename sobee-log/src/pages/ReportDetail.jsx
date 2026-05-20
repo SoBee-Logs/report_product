@@ -1,50 +1,88 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
-  Tooltip, Legend
-} from 'recharts'
 
-const WEEKLY_DETAIL = [
-  { week: '1주', 식비: 4200, 쇼핑: 1800, 교통: 3100, 카페: 2100, 생활: 1500, 문화: 800,  금융: 500, 뷰티: 300, 의료: 200,  여행: 0,    술: 1200, 온라인: 900,  주거: 400, 교육: 600, 경조: 0 },
-  { week: '2주', 식비: 5100, 쇼핑: 3200, 교통: 2800, 카페: 1900, 생활: 1200, 문화: 1100, 금융: 500, 뷰티: 700, 의료: 0,    여행: 0,    술: 800,  온라인: 1300, 주거: 400, 교육: 600, 경조: 2000 },
-  { week: '3주', 식비: 3800, 쇼핑: 2100, 교통: 3500, 카페: 2400, 생활: 900,  문화: 600,  금융: 500, 뷰티: 0,   의료: 1500, 여행: 0,    술: 1500, 온라인: 600,  주거: 400, 교육: 600, 경조: 0 },
-  { week: '4주', 식비: 6400, 쇼핑: 3300, 교통: 3400, 카페: 1800, 생활: 2100, 문화: 400,  금융: 500, 뷰티: 500, 의료: 0,    여행: 8000, 술: 2100, 온라인: 2200, 주거: 400, 교육: 600, 경조: 0 },
-]
+const CATEGORY_COLORS = {
+  '한식': '#1e73be', '일반대중음식': '#38BDF8', '커피전문점': '#60a5fa',
+  '편의점': '#93c5fd', '결제대행(PG)': '#bfdbfe', '패스트푸드': '#2563eb',
+  '할인점/슈퍼마켓': '#0ea5e9', '약국': '#7dd3fc', '제과점': '#3b82f6',
+  '일식': '#6366f1', '개인병원': '#a5b4fc', '안경,콘텍트렌즈': '#818cf8',
+  '공연장,극장': '#c7d2fe', '관광민예,선물용품': '#dbeafe', '기타4': '#e0e7ff',
+  '서적': '#bfdbfe', '인쇄,출판': '#93c5fd', '전자상거래(다품목취급)': '#60a5fa',
+  '식품류제조업': '#38BDF8', '인형++및++완구++아동용++자전거': '#1e73be',
+}
 
-const CATEGORIES = [
-  { name: '식비',     key: '식비',   color: '#1e73be', total: 19500 },
-  { name: '패션/쇼핑', key: '쇼핑',   color: '#38BDF8', total: 10400 },
-  { name: '교통',     key: '교통',   color: '#60a5fa', total: 12800 },
-  { name: '카페/간식', key: '카페',   color: '#93c5fd', total:  8200 },
-  { name: '생활',     key: '생활',   color: '#2563eb', total:  5700 },
-  { name: '문화/여가', key: '문화',   color: '#0ea5e9', total:  2900 },
-  { name: '금융',     key: '금융',   color: '#7dd3fc', total:  2000 },
-  { name: '뷰티/미용', key: '뷰티',   color: '#bae6fd', total:  1500 },
-  { name: '의료/건강', key: '의료',   color: '#1d4ed8', total:  1700 },
-  { name: '여행/숙박', key: '여행',   color: '#3b82f6', total:  8000 },
-  { name: '술/유흥',  key: '술',    color: '#6366f1', total:  5600 },
-  { name: '온라인쇼핑', key: '온라인', color: '#a5b4fc', total:  5000 },
-  { name: '주거/통신', key: '주거',   color: '#c7d2fe', total:  1600 },
-  { name: '교육/학습', key: '교육',   color: '#dbeafe', total:  2400 },
-  { name: '경조/선물', key: '경조',   color: '#bfdbfe', total:  2000 },
-]
+const TIME_ICONS = {
+  '새벽': '🌙', '아침': '🌅', '점심': '☀️', '저녁': '🍽️', '심야': '🌃',
+}
+const TIME_ORDER = ['새벽', '아침', '점심', '저녁', '심야']
 
-// 이번주 = 4주차 데이터
-const THIS_WEEK = WEEKLY_DETAIL[3]
-const MAX_TOTAL = Math.max(...CATEGORIES.map((c) => c.total))
-const MAX_WEEK  = Math.max(...CATEGORIES.map((c) => THIS_WEEK[c.key]))
+const API_BASE = 'http://localhost:8000'
 
 export default function ReportDetail() {
   const navigate = useNavigate()
+  const [txData,  setTxData]  = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`${API_BASE}/report/mydata/transaction?user_id=1`)
+      .then(r => r.json())
+      .then(setTxData)
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-64 gap-3">
+      <span className="animate-spin text-2xl">⏳</span>
+      <p className="text-sm text-gray-400">불러오는 중...</p>
+    </div>
+  )
+
+  // 월 누적 카테고리 배열 (금액 내림차순)
+  const categoryList = txData
+    ? Object.entries(txData.category_price)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, total]) => ({
+          name,
+          total,
+          color: CATEGORY_COLORS[name] ?? '#94a3b8',
+        }))
+    : []
+
+  const maxTotal = Math.max(...categoryList.map(c => c.total), 1)
+
+  // 이번주(4주차) 카테고리별 금액
+  const thisWeekList = txData?.weekly_price?.length > 0
+    ? (() => {
+        const lastWeek = txData.weekly_price[txData.weekly_price.length - 1]
+        const weekNum = lastWeek.week
+        const maxWeek = Math.max(...categoryList.map(c => lastWeek[c.name] ?? 0), 1)
+        return { lastWeek, weekNum, maxWeek }
+      })()
+    : null
+
+  // 시간대 배열
+  const timeList = txData
+    ? (() => {
+        const total = Object.values(txData.timepattern_price).reduce((a, b) => a + b, 0)
+        return TIME_ORDER
+          .filter(label => txData.timepattern_price[label])
+          .map(label => ({
+            label,
+            amount: txData.timepattern_price[label],
+            pct: Math.round((txData.timepattern_price[label] / total) * 100),
+            icon: TIME_ICONS[label],
+          }))
+      })()
+    : []
 
   return (
     <div className="flex flex-col gap-4 pt-4 px-4 pb-24 overflow-y-auto">
 
-      {/* 카테고리별 월 누적 총합 */}
+      {/* 이번 달 카테고리별 소비 */}
       <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
         <p className="text-xs text-gray-500 font-semibold mb-4">📊 이번 달 카테고리별 소비</p>
         <div className="flex flex-col gap-3">
-          {CATEGORIES.map((cat) => (
+          {categoryList.map((cat) => (
             <div key={cat.name}>
               <div className="flex justify-between items-center mb-1">
                 <div className="flex items-center gap-1.5">
@@ -57,7 +95,7 @@ export default function ReportDetail() {
                 <div
                   className="h-2 rounded-full transition-all duration-500"
                   style={{
-                    width: `${(cat.total / MAX_TOTAL) * 100}%`,
+                    width: `${(cat.total / maxTotal) * 100}%`,
                     background: cat.color,
                   }}
                 />
@@ -67,42 +105,79 @@ export default function ReportDetail() {
         </div>
       </div>
 
-      {/* 이번주 소비 - 카테고리별 1개 바 */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-500 font-semibold">📅 이번주 소비</p>
-          <span className="text-[10px] text-[#1e73be] bg-blue-50 px-2 py-0.5 rounded-full font-semibold">4주차</span>
-        </div>
-
-        {CATEGORIES.map((cat) => (
-          <div key={cat.name} className="rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full shrink-0" style={{ background: cat.color }} />
-                <p className="text-xs font-semibold text-gray-700">{cat.name}</p>
-              </div>
-              <div className="text-right">
-                <span className="text-sm font-bold" style={{ color: cat.color }}>
-                  {THIS_WEEK[cat.key].toLocaleString()}원
-                </span>
-                <span className="text-[10px] text-gray-400 ml-1">/ 월 {cat.total.toLocaleString()}원</span>
-              </div>
-            </div>
-            <div className="w-full h-2.5 rounded-full bg-gray-100">
-              <div
-                className="h-2.5 rounded-full transition-all duration-500"
-                style={{
-                  width: THIS_WEEK[cat.key] === 0 ? '2%' : `${(THIS_WEEK[cat.key] / MAX_WEEK) * 100}%`,
-                  background: THIS_WEEK[cat.key] === 0 ? '#e5e7eb' : cat.color,
-                }}
-              />
-            </div>
-            {THIS_WEEK[cat.key] === 0 && (
-              <p className="text-[10px] text-gray-300 mt-1">이번주 소비 없음</p>
-            )}
+      {/* 이번주 소비 */}
+      {thisWeekList && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-500 font-semibold">📅 이번주 소비</p>
+            <span className="text-[10px] text-[#1e73be] bg-blue-50 px-2 py-0.5 rounded-full font-semibold">
+              {thisWeekList.weekNum}
+            </span>
           </div>
-        ))}
-      </div>
+          {categoryList.map((cat) => {
+            const weekAmount = thisWeekList.lastWeek[cat.name] ?? 0
+            return (
+              <div key={cat.name} className="rounded-2xl border border-gray-100 p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ background: cat.color }} />
+                    <p className="text-xs font-semibold text-gray-700">{cat.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold" style={{ color: cat.color }}>
+                      {weekAmount.toLocaleString()}원
+                    </span>
+                    <span className="text-[10px] text-gray-400 ml-1">/ 월 {cat.total.toLocaleString()}원</span>
+                  </div>
+                </div>
+                <div className="w-full h-2.5 rounded-full bg-gray-100">
+                  <div
+                    className="h-2.5 rounded-full transition-all duration-500"
+                    style={{
+                      width: weekAmount === 0 ? '2%' : `${(weekAmount / thisWeekList.maxWeek) * 100}%`,
+                      background: weekAmount === 0 ? '#e5e7eb' : cat.color,
+                    }}
+                  />
+                </div>
+                {weekAmount === 0 && (
+                  <p className="text-[10px] text-gray-300 mt-1">이번주 소비 없음</p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* 시간대별 소비 금액 */}
+      {timeList.length > 0 && (
+        <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
+          <p className="text-xs text-gray-500 font-semibold mb-3">⏰ 시간대별 소비 금액</p>
+          <div className="flex flex-col gap-3">
+            {timeList.map((t) => (
+              <div key={t.label} className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-base shrink-0">
+                  {t.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs font-semibold text-gray-700">{t.label}</span>
+                    <span className="text-xs text-gray-500">{t.amount.toLocaleString()}원 ({t.pct}%)</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-gray-100">
+                    <div
+                      className="h-2 rounded-full"
+                      style={{
+                        width: `${t.pct}%`,
+                        background: '#1e73be',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 뒤로가기 */}
       <button
