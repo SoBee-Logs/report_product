@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     APP_NAME: str = "Sobee FastAPI"
-    OPENAI_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
     MYSQL_URL: str = ""
 
     class Config:
