@@ -4,11 +4,11 @@ from typing import Optional
 # 아바타
 class AvatarRequest(BaseModel):
     user_id: int
-    transaction_summary: str
 
 class AvatarResponse(BaseModel):
     avatar_title: str
     avatar_description: str
+    avatar_image: str  # base64 encoded PNG, 16:9, character + background combined
 
 # 금융상품 추천
 class RecommendRequest(BaseModel):

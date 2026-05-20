@@ -2,17 +2,17 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     APP_NAME: str = "Sobee FastAPI"
-    OPENAI_API_KEY: str = ""
-    MYSQL_URL: str = ""
-    
-    # 추가할 필드들
-    db_host: str = "127.0.0.1"
-    db_port: str = "3306"
-    db_user: str = "root"
-    db_password: str = ""
-    db_name: str = "wonpick"
+
+    GEMINI_API_KEY: str = ""
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 3306
+    DB_NAME: str = "sobee_db"
+    DB_USER: str = "root"
+    DB_PASSWORD: str = "1234"
+
     csv_path: str = ""
     model_path: str = "ml/model.pkl"
+
 
     class Config:
         env_file = ".env"
