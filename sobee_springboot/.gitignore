@@ -49,6 +49,3 @@ logs/
 
 ### Crash logs ###
 *.stackdump
-
-.DS_Store
-**/.DS_Store
