@@ -29,3 +29,6 @@ __pycache__/
 
 # pytest
 .pytest_cache/
+
+# 로컬 테스트 결과물 (생성 이미지, 페르소나 텍스트)
+test_output/
