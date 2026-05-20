@@ -10,6 +10,7 @@ import CameraPage from './pages/CameraPage'
 import ConsumptionLog from './pages/ConsumptionLog'
 import LoadingPage from './pages/LoadingPage'
 import DiaryResult from './pages/DiaryResult'
+import ProductSearch from './pages/ProductSearch'
 
 const routeConfig = [
   { path: '/',                element: <Home />,            bottomNav: true,  floatingNav: true,  appBar: false },
@@ -21,6 +22,7 @@ const routeConfig = [
   { path: '/consumption-log', element: <ConsumptionLog />,  bottomNav: false, floatingNav: false, appBar: false },
   { path: '/loading',         element: <LoadingPage />,     bottomNav: false, floatingNav: false, appBar: false },
   { path: '/diary-result',    element: <DiaryResult />,     bottomNav: false, floatingNav: false, appBar: false },
+  { path: '/search',          element: <ProductSearch />,   bottomNav: true,  floatingNav: false, appBar: false, title: '상품 찾기' },
 ]
 
 function Layout() {
@@ -32,28 +34,28 @@ function Layout() {
   }
 
   return (
-    <div className="flex flex-col w-[375px] h-[100dvh] mx-auto bg-white overflow-hidden shadow-xl relative">
-      {config.appBar && <AppBar title={config.title} />}
-      <div className={`flex-1 overflow-y-auto ${config.floatingNav ? 'pb-0' : ''}`}>
-        <Routes>
-          {routeConfig.map(({ path, element }) => (
-            <Route key={path} path={path} element={element} />
-          ))}
-        </Routes>
-      </div>
-      {config.bottomNav && (
-        <div className={config.floatingNav ? 'absolute bottom-0 left-0 right-0 z-30' : ''}>
-          <BottomNav floating={config.floatingNav} />
+      <div className="flex flex-col w-[375px] h-[100dvh] mx-auto bg-white overflow-hidden shadow-xl relative">
+        {config.appBar && <AppBar title={config.title} />}
+        <div className={`flex-1 overflow-y-auto ${config.floatingNav ? 'pb-0' : ''}`}>
+          <Routes>
+            {routeConfig.map(({ path, element }) => (
+                <Route key={path} path={path} element={element} />
+            ))}
+          </Routes>
         </div>
-      )}
-    </div>
+        {config.bottomNav && (
+            <div className={config.floatingNav ? 'absolute bottom-0 left-0 right-0 z-30' : ''}>
+              <BottomNav floating={config.floatingNav} />
+            </div>
+        )}
+      </div>
   )
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Layout />
-    </BrowserRouter>
+      <BrowserRouter>
+        <Layout />
+      </BrowserRouter>
   )
 }

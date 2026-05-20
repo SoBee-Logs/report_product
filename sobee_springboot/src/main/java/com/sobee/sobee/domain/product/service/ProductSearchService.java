@@ -2,6 +2,7 @@ package com.sobee.sobee.domain.product.service;
 
 import com.sobee.sobee.domain.product.dto.SearchResultDto;
 import com.sobee.sobee.domain.product.entity.CardInfo;
+import com.sobee.sobee.domain.product.entity.CardTopBenefit;
 import com.sobee.sobee.domain.product.entity.InsuranceProduct;
 import com.sobee.sobee.domain.product.entity.SavingsProduct;
 import com.sobee.sobee.domain.product.repository.CardInfoRepository;
@@ -23,10 +24,6 @@ public class ProductSearchService {
     private final SavingsProductRepository savingsProductRepository;
     private final InsuranceProductRepository insuranceProductRepository;
 
-    /**
-     * 자연어 키워드 검색 (키워드 토크나이징 후 각 테이블 OR 매칭)
-     * 예) "신한 카드 여행 혜택" → ["신한", "카드", "여행", "혜택"] 각각 검색 후 합산
-     */
     public SearchResultDto search(String query) {
         if (query == null || query.isBlank()) {
             return SearchResultDto.builder()
@@ -38,7 +35,6 @@ public class ProductSearchService {
                     .build();
         }
 
-        // 공백/특수문자 기준으로 토크나이징
         List<String> tokens = Arrays.stream(query.trim().split("[\\s,]+"))
                 .filter(t -> t.length() >= 1)
                 .distinct()
@@ -46,7 +42,6 @@ public class ProductSearchService {
 
         log.info("🔍 검색 쿼리: '{}' → 토큰: {}", query, tokens);
 
-        // 각 토큰으로 검색 후 중복 제거 (id 기준)
         List<CardInfo> cards = searchCards(tokens);
         List<SavingsProduct> savings = searchSavings(tokens);
         List<InsuranceProduct> insurance = searchInsurance(tokens);
@@ -54,12 +49,17 @@ public class ProductSearchService {
         List<SearchResultDto.CardResult> cardResults = cards.stream()
                 .map(c -> SearchResultDto.CardResult.builder()
                         .cardInfoId(c.getCardInfoId())
+                        .gorillaId(c.getGorillaId())
                         .cardName(c.getCardName())
                         .corpName(c.getCorpName())
                         .cardType(c.getCardType())
                         .annualFeeBasic(c.getAnnualFeeBasic())
+                        .minPerformance(c.getMinPerformance())
                         .cardImgUrl(c.getCardImgUrl())
                         .isDiscontinued(c.getIsDiscontinued())
+                        .topBenefitTitles(c.getTopBenefits().stream()
+                                .map(CardTopBenefit::getTitle)
+                                .collect(Collectors.toList()))
                         .build())
                 .collect(Collectors.toList());
 
