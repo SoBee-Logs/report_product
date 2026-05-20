@@ -9,17 +9,9 @@ engine = create_engine(
     f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )
 
-# 임시 매핑 테이블 (Mock 데이터용)
-USER_ID_MAP = {
-    1: "user_haeun",
-    2: "user_soyoung",
-    3: "user_seokbin",
-}
-
 async def predict_lifecycle(request: LifecycleRequest) -> LifecycleResponse:
 
-    # int → DB 문자열 변환
-    user_id_str = USER_ID_MAP.get(request.user_id, f"user_{request.user_id}")
+    user_id = request.user_id
 
     # DB에서 트랜잭션 가져오기
     df_tx = pd.read_sql(text("""
@@ -28,14 +20,14 @@ async def predict_lifecycle(request: LifecycleRequest) -> LifecycleResponse:
         FROM transactions
         WHERE user_id = :user_id
         AND payment_out > 0
-    """), engine, params={"user_id": user_id_str})
+    """), engine, params={"user_id": user_id})
 
     # DB에서 나이/성별 가져오기
     df_user = pd.read_sql(text("""
         SELECT age, gender
         FROM users
         WHERE user_id = :user_id
-    """), engine, params={"user_id": user_id_str})
+    """), engine, params={"user_id": user_id})
 
     # users 데이터 파싱 (없으면 request 값 사용)
     if not df_user.empty:

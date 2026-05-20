@@ -1,4 +1,4 @@
-from app.services.lifecycle_service import engine, USER_ID_MAP
+from app.services.lifecycle_service import engine
 from sqlalchemy import text
 import pandas as pd
 
@@ -77,14 +77,12 @@ CATEGORY_COLORS = {
 }
 
 def get_transaction_report(user_id: int):
-    user_id_str = USER_ID_MAP.get(user_id, f"user_{user_id}")
-
     df = pd.read_sql(text("""
         SELECT payment_category, payment_time, payment_date, payment_out
         FROM transactions
         WHERE user_id = :user_id
         AND payment_out > 0
-    """), engine, params={"user_id": user_id_str})
+    """), engine, params={"user_id": user_id})
 
     if df.empty:
         return {

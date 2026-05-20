@@ -23,7 +23,7 @@ class RecommendResponse(BaseModel):
 
 # 생애주기
 class LifecycleRequest(BaseModel):
-    user_id: int
+    user_id: int = 1
     age: int
     monthly_spend: float
     top_category: str
