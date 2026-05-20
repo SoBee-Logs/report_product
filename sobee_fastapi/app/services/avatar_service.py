@@ -2,11 +2,12 @@ import base64
 import io
 import json
 from collections import defaultdict
+from datetime import datetime
 
+import boto3
+from openai import AsyncOpenAI
 from PIL import Image
 from fastapi import HTTPException
-from google import genai
-from google.genai import types
 
 from app.core.config import settings
 from app.db.transaction_repository import get_recent_transactions
@@ -101,20 +102,16 @@ def _build_transaction_summary(transactions: list[dict]) -> str:
 
 
 async def _analyze_persona(summary: str) -> dict:
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
     prompt = _ANALYSIS_PROMPT.format(summary=summary)
 
-    response = await client.aio.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        response_format={"type": "json_object"},
     )
 
-    text = response.text.strip()
-    if "```" in text:
-        text = text.split("```")[1]
-        if text.startswith("json"):
-            text = text[4:]
-    return json.loads(text.strip())
+    return json.loads(response.choices[0].message.content)
 
 
 def _crop_to_ratio(image_bytes: bytes, width_ratio: int, height_ratio: int) -> bytes:
@@ -137,23 +134,36 @@ def _crop_to_ratio(image_bytes: bytes, width_ratio: int, height_ratio: int) -> b
     return buf.getvalue()
 
 
-async def _generate_image(prompt: str, width_ratio: int, height_ratio: int) -> str:
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+async def _generate_image(prompt: str) -> bytes:
+    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
-    response = await client.aio.models.generate_content(
-        model="gemini-2.5-flash-image",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_modalities=["IMAGE"],
-        ),
+    response = await client.images.generate(
+        model="gpt-image-1",
+        prompt=prompt,
+        size="1536x1024",  # 3:2 landscape, 16:9로 크롭
+        quality="high",
+        n=1,
     )
 
-    for part in response.candidates[0].content.parts:
-        if part.inline_data is not None:
-            image_bytes = _crop_to_ratio(part.inline_data.data, width_ratio, height_ratio)
-            return base64.b64encode(image_bytes).decode("utf-8")
+    image_bytes = base64.b64decode(response.data[0].b64_json)
+    return _crop_to_ratio(image_bytes, width_ratio=16, height_ratio=9)
 
-    raise ValueError("Gemini did not return an image")
+
+def _upload_to_s3(image_bytes: bytes, user_id: int) -> str:
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name=settings.AWS_REGION,
+    )
+    key = f"avatars/{user_id}/{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    s3.put_object(
+        Bucket=settings.S3_BUCKET_NAME,
+        Key=key,
+        Body=image_bytes,
+        ContentType="image/png",
+    )
+    return f"https://{settings.S3_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
 
 
 async def generate_avatar(request: AvatarRequest) -> AvatarResponse:
@@ -171,10 +181,11 @@ async def generate_avatar(request: AvatarRequest) -> AvatarResponse:
         personality=analysis["personality"],
     )
 
-    avatar_image = await _generate_image(prompt, width_ratio=16, height_ratio=9)
+    image_bytes = await _generate_image(prompt)
+    avatar_image_url = _upload_to_s3(image_bytes, request.user_id)
 
     return AvatarResponse(
         avatar_title=analysis["title"],
         avatar_description=analysis["description"],
-        avatar_image=avatar_image,
+        avatar_image=avatar_image_url,
     )

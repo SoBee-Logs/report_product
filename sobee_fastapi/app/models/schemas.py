@@ -8,7 +8,7 @@ class AvatarRequest(BaseModel):
 class AvatarResponse(BaseModel):
     avatar_title: str
     avatar_description: str
-    avatar_image: str  # base64 encoded PNG, 16:9, character + background combined
+    avatar_image: str  # S3 URL, 16:9 PNG, character + background combined
 
 # 금융상품 추천
 class RecommendRequest(BaseModel):

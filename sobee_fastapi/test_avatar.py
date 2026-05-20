@@ -1,4 +1,3 @@
-import base64
 import subprocess
 import sys
 from pathlib import Path
@@ -25,17 +24,15 @@ if response.status_code != 200:
 data = response.json()
 print(f"\n타이틀: {data['avatar_title']}")
 print(f"설명:   {data['avatar_description']}")
+print(f"이미지: {data['avatar_image']}")
 
-avatar_path = OUTPUT_DIR / "avatar.png"   # 16:9, 캐릭터+배경 통합
 persona_path = OUTPUT_DIR / "persona.txt"
-
-avatar_path.write_bytes(base64.b64decode(data["avatar_image"]))
 persona_path.write_text(
-    f"[아바타 타이틀]\n{data['avatar_title']}\n\n[페르소나 선정 이유]\n{data['avatar_description']}",
+    f"[아바타 타이틀]\n{data['avatar_title']}\n\n"
+    f"[페르소나 선정 이유]\n{data['avatar_description']}\n\n"
+    f"[이미지 URL]\n{data['avatar_image']}",
     encoding="utf-8",
 )
 
-print(f"\n아바타 이미지 (16:9): {avatar_path}")
-print(f"페르소나 설명:         {persona_path}")
-
-subprocess.run(["open", str(avatar_path), str(persona_path)])
+print(f"\n페르소나 설명: {persona_path}")
+subprocess.run(["open", str(persona_path)])
