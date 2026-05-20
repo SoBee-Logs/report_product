@@ -22,12 +22,15 @@ public class SearchResultDto {
     @AllArgsConstructor
     public static class CardResult {
         private Long cardInfoId;
+        private Integer gorillaId;
         private String cardName;
         private String corpName;
         private String cardType;
         private String annualFeeBasic;
+        private Integer minPerformance;
         private String cardImgUrl;
         private Boolean isDiscontinued;
+        private List<String> topBenefitTitles;
     }
 
     @Getter
