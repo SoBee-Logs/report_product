@@ -5,8 +5,8 @@ from app.core.config import settings
 import pandas as pd
 
 engine = create_engine(
-    f"mysql+pymysql://{settings.db_user}:{settings.db_password}"
-    f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+    f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}"
+    f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )
 
 # 임시 매핑 테이블 (Mock 데이터용)

@@ -3,8 +3,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import avatar, recommend, lifecycle, report 
-
-from app.api import avatar, lifecycle, recommend
 from app.db.connection import close_pool
 
 
