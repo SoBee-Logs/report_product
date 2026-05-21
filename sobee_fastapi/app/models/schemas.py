@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 # 아바타
 class AvatarRequest(BaseModel):
@@ -27,5 +27,23 @@ class LifecycleRequest(BaseModel):
 
 # LifecycleResponse
 class LifecycleResponse(BaseModel):
-    life_stage_code: str
+    lifecycle_stage: str
     description: str
+
+# AI 상품 추천
+class AiInsightContent(BaseModel):
+    header: Optional[str] = None
+    middle: Optional[str] = None
+    small: Optional[str] = None
+    url: Optional[str] = None
+
+class AiInsightItem(BaseModel):
+    product_name: str
+    product_company: str
+    product_img_url: Optional[str] = None
+    product_type: str  # 'card' | 'savings'
+    content: Optional[AiInsightContent] = None
+
+class AiInsightResponse(BaseModel):
+    recommned: List[AiInsightItem]  # 스펙 오타 유지
+    message: Optional[str] = None

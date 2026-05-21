@@ -11,6 +11,7 @@ import ConsumptionLog from './pages/ConsumptionLog'
 import LoadingPage from './pages/LoadingPage'
 import DiaryResult from './pages/DiaryResult'
 import ProductSearch from './pages/ProductSearch'
+import ProductDetail from './pages/ProductDetail'
 
 const routeConfig = [
   { path: '/',                element: <Home />,            bottomNav: true,  floatingNav: true,  appBar: false },
@@ -23,6 +24,7 @@ const routeConfig = [
   { path: '/loading',         element: <LoadingPage />,     bottomNav: false, floatingNav: false, appBar: false },
   { path: '/diary-result',    element: <DiaryResult />,     bottomNav: false, floatingNav: false, appBar: false },
   { path: '/search',          element: <ProductSearch />,   bottomNav: true,  floatingNav: false, appBar: false, title: '상품 찾기' },
+  { path: '/product/detail',  element: <ProductDetail />,   bottomNav: false, floatingNav: false, appBar: false },
 ]
 
 function Layout() {

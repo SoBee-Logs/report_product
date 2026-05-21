@@ -6,9 +6,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
-    DB_NAME: str = "sobee_db"
+    DB_NAME: str = "sobee"
     DB_USER: str = "root"
-    DB_PASSWORD: str = "1234"
+    DB_PASSWORD: str = ""
 
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""

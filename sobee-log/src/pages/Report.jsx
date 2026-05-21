@@ -1,15 +1,54 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   PieChart, Pie, Cell, Tooltip,
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
   LineChart, Line, CartesianGrid
 } from 'recharts'
 
-const MOCK_PRODUCTS = [
-  { id: 1, tag: '💳 추천 카드', name: '하나 트래블로그 카드', desc: '지난달 대비 식비 지출이 높아요.' },
-  { id: 2, tag: '💰 추천 상품', name: 'OO 적금 상품', desc: '소비 패턴에 맞는 적금 상품이에요.' },
-]
+function RecommendCard({ item, index }) {
+  const navigate = useNavigate()
+  const { product_name, product_company, product_img_url, product_type, content } = item
+  const label = product_type === 'card' ? '💳 추천 카드' : '🏦 추천 예적금'
+
+  return (
+    <div
+      onClick={() => navigate('/product/detail', { state: { item } })}
+      className="rounded-2xl border border-gray-100 p-4 shadow-sm flex gap-3 items-center cursor-pointer active:bg-gray-50"
+    >
+      {/* 카드/상품 이미지 */}
+      <div className="shrink-0 w-12 rounded-lg overflow-hidden shadow-md"
+        style={{ height: 76, background: 'linear-gradient(135deg, #1e73be, #0e3f78)' }}
+      >
+        {product_img_url ? (
+          <img
+            src={product_img_url}
+            alt={product_name}
+            className="w-full h-full object-cover"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-2xl">
+            {product_type === 'card' ? '💳' : '🏦'}
+          </div>
+        )}
+      </div>
+
+      {/* 텍스트 */}
+      <div className="flex-1 min-w-0">
+        <span className="text-[10px] bg-blue-100 text-[#1e73be] rounded-full px-2 py-0.5 font-semibold">{label}</span>
+        <p className="text-sm font-bold text-gray-900 mt-1 truncate">{product_name}</p>
+        <p className="text-[11px] text-gray-400 truncate">{product_company}</p>
+        {content?.header && (
+          <p className="text-[11px] text-[#1e73be] font-semibold mt-0.5 truncate">{content.header}</p>
+        )}
+      </div>
+
+      {/* 화살표 */}
+      <span className="text-gray-300 text-sm shrink-0">›</span>
+    </div>
+  )
+}
 
 const CATEGORY_COLORS = {
   '한식': '#1e73be', '일반대중음식': '#38BDF8', '커피전문점': '#60a5fa',
@@ -30,10 +69,21 @@ const USER_ID = 1
 
 export default function Report() {
   const navigate = useNavigate()
-  const [lifecycle, setLifecycle] = useState(null)
-  const [txData,    setTxData]    = useState(null)
-  const [loading,   setLoading]   = useState(true)
-  const [error,     setError]     = useState(null)
+  const location = useLocation()
+  const aiRecommendRef = useRef(null)
+  const [lifecycle,      setLifecycle]      = useState(null)
+  const [txData,         setTxData]         = useState(null)
+  const [recommendData,  setRecommendData]  = useState(null)
+  const [loading,        setLoading]        = useState(true)
+  const [error,          setError]          = useState(null)
+
+  useEffect(() => {
+    if (location.state?.scrollTo === 'aiRecommend' && aiRecommendRef.current) {
+      setTimeout(() => {
+        aiRecommendRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 300)
+    }
+  }, [loading, location.state])
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -48,6 +98,15 @@ export default function Report() {
         if (lcRes.status === 'fulfilled') setLifecycle(lcRes.value)
         else setLifecycle({ lifecycle_stage: '생애주기 없음', description: '분석 결과를 불러올 수 없어요.' })
         if (txRes.status === 'fulfilled') setTxData(txRes.value)
+
+        // lifecycle + txData 완료 후 순차적으로 상품 추천 호출
+        try {
+          const recRes = await fetch(`${API_BASE}/report/ai-insight?user_id=1`)
+          const recData = await recRes.json()
+          setRecommendData(recData)
+        } catch {
+          setRecommendData({ error: true })
+        }
       } catch (e) {
         setError(e.message)
       } finally {
@@ -134,16 +193,28 @@ export default function Report() {
         </div>
       </div>
 
-      {/* 금융상품 추천 - 목업 유지 */}
-      <div className="flex flex-col gap-2">
+      {/* AI 상품 추천 */}
+      <div ref={aiRecommendRef} className="flex flex-col gap-2">
         <p className="text-xs text-gray-500 font-semibold">🤖 AI 상품 추천</p>
-        {MOCK_PRODUCTS.map((p) => (
-          <div key={p.id} className="rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <span className="text-[10px] bg-blue-100 text-[#1e73be] rounded-full px-2 py-0.5 font-semibold">{p.tag}</span>
-            <p className="font-bold text-gray-800 text-sm mt-2">{p.name}</p>
-            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{p.desc}</p>
-          </div>
-        ))}
+        {recommendData?.message && (
+          <p className="text-[11px] text-gray-400 leading-relaxed px-1">{recommendData.message}</p>
+        )}
+        {recommendData?.recommned?.length > 0
+          ? recommendData.recommned.map((item, i) => (
+              <RecommendCard key={i} item={item} index={i} />
+            ))
+          : recommendData === null
+            ? (
+              <div className="rounded-2xl border border-gray-100 p-4 shadow-sm text-center text-xs text-gray-400">
+                추천 상품을 불러오는 중...
+              </div>
+            )
+            : (
+              <div className="rounded-2xl border border-gray-100 p-4 shadow-sm text-center text-xs text-gray-400">
+                추천 상품을 불러올 수 없어요
+              </div>
+            )
+        }
       </div>
 
       {/* 생애주기 */}
