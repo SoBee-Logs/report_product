@@ -64,6 +64,9 @@ const TIME_ORDER = ['새벽', '아침', '점심', '저녁', '심야']
 
 const API_BASE = 'http://localhost:8000'
 
+// TODO: 로그인 연동 후 localStorage or 전역상태에서 가져오도록 교체
+const USER_ID = 1
+
 export default function Report() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -87,12 +90,10 @@ export default function Report() {
       try {
         setLoading(true)
         const [lcRes, txRes] = await Promise.allSettled([
-          fetch(`${API_BASE}/api/lifecycle`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: 1, age: 28, monthly_spend: 527000, top_category: '식비' }),
-          }).then(r => r.json()),
-          fetch(`${API_BASE}/report/mydata/transaction?user_id=1`).then(r => r.json()),
+          // ✅ GET /api/lifecycle/{user_id} → 저장된 생애주기 조회
+          fetch(`${API_BASE}/api/lifecycle/${USER_ID}`).then(r => r.json()),
+          // ✅ user_id 변수로 동적 처리
+          fetch(`${API_BASE}/report/mydata/transaction?user_id=${USER_ID}`).then(r => r.json()),
         ])
         if (lcRes.status === 'fulfilled') setLifecycle(lcRes.value)
         else setLifecycle({ lifecycle_stage: '생애주기 없음', description: '분석 결과를 불러올 수 없어요.' })
@@ -219,7 +220,7 @@ export default function Report() {
       {/* 생애주기 */}
       <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
         <p className="text-xs text-[#1e73be] font-semibold mb-2">🧬 AI 생애주기 분석</p>
-        <p className="font-bold text-[#1e73be] text-base">{lifecycle?.lifecycle_stage}</p>
+        <p className="font-bold text-[#1e73be] text-base">{lifecycle?.life_stage_code}</p>
         <p className="text-xs text-blue-400 mt-1 leading-relaxed">{lifecycle?.description}</p>
         {error && <p className="text-[10px] text-red-300 mt-1">※ 서버 연결 실패</p>}
       </div>
