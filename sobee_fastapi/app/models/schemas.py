@@ -21,13 +21,11 @@ class RecommendResponse(BaseModel):
     product_name: str
     reason: str
 
-# 생애주기
+# LifecycleRequest
 class LifecycleRequest(BaseModel):
-    user_id: int = 1
-    age: int
-    monthly_spend: float
-    top_category: str
+    user_id: int                           # 필수
 
+# LifecycleResponse
 class LifecycleResponse(BaseModel):
-    lifecycle_stage: str
+    life_stage_code: str
     description: str
