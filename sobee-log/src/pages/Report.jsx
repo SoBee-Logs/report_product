@@ -45,7 +45,7 @@ export default function Report() {
           fetch(`${API_BASE}/report/mydata/transaction?user_id=1`).then(r => r.json()),
         ])
         if (lcRes.status === 'fulfilled') setLifecycle(lcRes.value)
-        else setLifecycle({ lifecycle_stage: '사회초년생', description: '분석 결과를 불러올 수 없어요.' })
+        else setLifecycle({ lifecycle_stage: '생애주기 없음', description: '분석 결과를 불러올 수 없어요.' })
         if (txRes.status === 'fulfilled') setTxData(txRes.value)
       } catch (e) {
         setError(e.message)
@@ -73,17 +73,17 @@ export default function Report() {
 
   const top3 = categoryList.slice(0, 3)
 
-  // timepattern_price 객체 → 차트 배열
+  // timepattern_price 객체 → 차트 배열 (데이터 없으면 0%로 표시)
   const timeList = txData
     ? (() => {
         const total = Object.values(txData.timepattern_price).reduce((a, b) => a + b, 0)
-        return TIME_ORDER
-          .filter(label => txData.timepattern_price[label])
-          .map(label => ({
-            label,
-            pct: Math.round((txData.timepattern_price[label] / total) * 100),
-            icon: TIME_ICONS[label],
-          }))
+        return TIME_ORDER.map(label => ({
+          label,
+          pct: txData.timepattern_price[label]
+            ? Math.round((txData.timepattern_price[label] / total) * 100)
+            : 0,
+          icon: TIME_ICONS[label],
+        }))
       })()
     : []
 
@@ -101,7 +101,7 @@ export default function Report() {
   return (
     <div className="flex flex-col gap-4 pt-4 px-4 pb-24 overflow-y-auto">
 
-      {/* 페르소나 배너 - 목업 유지 (친구 파트) */}
+      {/* 페르소나 배너 - 목업 유지*/}
       <div className="rounded-2xl bg-[#1e73be] text-white p-4 flex items-center gap-3">
         <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-2xl shrink-0">🐝</div>
         <div className="flex-1 min-w-0">
@@ -122,8 +122,8 @@ export default function Report() {
         <div className="flex gap-3 mt-3">
           {[
             ['결제 건수', txData ? `${txData.payment_total_num}건` : '-'],
-            ['결제 일수', '-'],
-            ['기타정보', '-'],
+            ['결제 일수', txData ? `${txData.payment_days}일` : '-'],
+            ['기타정보', peakTime ? `${peakTime.icon}${peakTime.label}` : '-'],
           ].map(([label, val]) => (
             <div key={label} className="flex-1 rounded-xl bg-gray-50 p-2 text-center">
               <p className="text-[10px] text-gray-400">{label}</p>
@@ -199,7 +199,7 @@ export default function Report() {
         </div>
       )}
 
-      {/* 주별 라인 차트 - 실제 DB 데이터 */}
+      {/* 주별 라인 차트 */}
       {txData?.weekly_price?.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
           <p className="text-xs text-gray-500 font-semibold mb-3">📈 주별 소비 변화 추이</p>
