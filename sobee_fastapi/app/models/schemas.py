@@ -31,3 +31,27 @@ class LifecycleRequest(BaseModel):
 class LifecycleResponse(BaseModel):
     lifecycle_stage: str
     description: str
+
+# 내부 파이프라인
+class SyncRequest(BaseModel):
+    user_id: int
+
+class SyncResponse(BaseModel):
+    message: str
+
+class MappingRequest(BaseModel):
+    user_id: int
+
+class MappingResponse(BaseModel):
+    message: str
+
+class PersonaGenerateRequest(BaseModel):
+    user_id: int
+    start_date: str  # YYYY-MM-DD
+    end_date: str    # YYYY-MM-DD
+
+class DiaryGenerateRequest(BaseModel):
+    user_id: int
+
+class DiaryGenerateResponse(BaseModel):
+    message: str

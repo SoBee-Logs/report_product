@@ -2,7 +2,7 @@ import base64
 import io
 import json
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import boto3
 from openai import AsyncOpenAI
@@ -10,7 +10,8 @@ from PIL import Image
 from fastapi import HTTPException
 
 from app.core.config import settings
-from app.db.transaction_repository import get_recent_transactions
+from app.db.transaction_repository import get_transactions_by_date_range, get_mapped_transactions_with_vlm
+from app.db.user_repository import update_user_avatar
 from app.models.schemas import AvatarRequest, AvatarResponse
 
 _AVATAR_PROMPT = """
@@ -63,19 +64,30 @@ _ANALYSIS_PROMPT = """
 """
 
 
-def _build_transaction_summary(transactions: list[dict]) -> str:
+def _extract_hour(payment_time) -> int | None:
+    """aiomysql TIME → timedelta, 또는 None 처리"""
+    if payment_time is None:
+        return None
+    if hasattr(payment_time, "total_seconds"):
+        return int(payment_time.total_seconds() // 3600)
+    try:
+        return int(str(payment_time)[:2])
+    except (ValueError, TypeError):
+        return None
+
+
+def _build_transaction_summary(transactions: list[dict], vlm_descriptions: list[str] | None = None) -> str:
     category_spend: dict[str, int] = defaultdict(int)
     time_buckets = {"morning (6-12)": 0, "afternoon (12-18)": 0, "evening (18-22)": 0, "night (22-6)": 0}
     place_count: dict[str, int] = defaultdict(int)
 
     for t in transactions:
         category = (t.get("payment_category") or "기타").strip() or "기타"
-        amount = int(t.get("payment_out") or 0)
+        amount = int(t.get("payment_price") or 0)
         category_spend[category] += amount
 
-        time_str = str(t.get("payment_time") or "").zfill(6)
-        if len(time_str) >= 2:
-            hour = int(time_str[:2])
+        hour = _extract_hour(t.get("payment_time"))
+        if hour is not None:
             if 6 <= hour < 12:
                 time_buckets["morning (6-12)"] += 1
             elif 12 <= hour < 18:
@@ -93,12 +105,15 @@ def _build_transaction_summary(transactions: list[dict]) -> str:
     dominant_time = max(time_buckets, key=lambda k: time_buckets[k])
     top_places = sorted(place_count.items(), key=lambda x: x[1], reverse=True)[:3]
 
-    return "\n".join([
+    lines = [
         f"총 결제 건수: {len(transactions)}건",
         f"카테고리별 지출 (상위 5): " + ", ".join(f"{c} {a:,}원" for c, a in top_categories),
         f"주 활동 시간대: {dominant_time}",
         f"자주 방문 가맹점: " + ", ".join(p for p, _ in top_places),
-    ])
+    ]
+    if vlm_descriptions:
+        lines.append("소비 사진 설명: " + " / ".join(vlm_descriptions[:10]))
+    return "\n".join(lines)
 
 
 async def _analyze_persona(summary: str) -> dict:
@@ -166,12 +181,27 @@ def _upload_to_s3(image_bytes: bytes, user_id: int) -> str:
     return f"https://{settings.S3_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
 
 
-async def generate_avatar(request: AvatarRequest) -> AvatarResponse:
-    transactions = await get_recent_transactions(request.user_id)
-    if not transactions:
-        raise HTTPException(status_code=404, detail=f"No transactions found for user_id: {request.user_id}")
+def _get_last_week_range() -> tuple[str, str]:
+    today = datetime.today()
+    this_monday = today - timedelta(days=today.weekday())
+    last_monday = this_monday - timedelta(days=7)
+    last_sunday = last_monday + timedelta(days=6)
+    return last_monday.strftime("%Y-%m-%d"), last_sunday.strftime("%Y-%m-%d")
 
-    summary = _build_transaction_summary(transactions)
+
+async def _generate_and_save_avatar(user_id: int, start_date: str, end_date: str) -> AvatarResponse:
+    """B(전체 결제) + A∩C(매핑된 VLM description) → 페르소나 생성 → S3 업로드 → users 저장"""
+    transactions = await get_transactions_by_date_range(user_id, start_date, end_date)
+    if not transactions:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No transactions found for user_id={user_id} ({start_date}~{end_date})"
+        )
+
+    mapped = await get_mapped_transactions_with_vlm(user_id, start_date, end_date)
+    vlm_descriptions = [r["vlm_description"] for r in mapped if r.get("vlm_description")]
+
+    summary = _build_transaction_summary(transactions, vlm_descriptions)
     analysis = await _analyze_persona(summary)
 
     prompt = _AVATAR_PROMPT.format(
@@ -182,10 +212,22 @@ async def generate_avatar(request: AvatarRequest) -> AvatarResponse:
     )
 
     image_bytes = await _generate_image(prompt)
-    avatar_image_url = _upload_to_s3(image_bytes, request.user_id)
+    avatar_image_url = _upload_to_s3(image_bytes, user_id)
+
+    await update_user_avatar(
+        user_id=user_id,
+        avatar_name=analysis["title"],
+        avatar_explane=analysis["description"],
+        avatar_img_url=avatar_image_url,
+    )
 
     return AvatarResponse(
         avatar_title=analysis["title"],
         avatar_description=analysis["description"],
         avatar_image=avatar_image_url,
     )
+
+
+async def generate_avatar(request: AvatarRequest) -> AvatarResponse:
+    start_date, end_date = _get_last_week_range()
+    return await _generate_and_save_avatar(request.user_id, start_date, end_date)

@@ -1,3 +1,12 @@
 .DS_Store
 **/.DS_Store
 .DS_Store
+
+# AWS 키
+*.pem
+key.pem
+
+# 환경변수
+.env
+.env.local
+.env.prod
