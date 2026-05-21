@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const CATEGORY_COLORS = {
-  '한식': '#1e73be', '일반대중음식': '#38BDF8', '커피전문점': '#60a5fa',
-  '편의점': '#93c5fd', '결제대행(PG)': '#bfdbfe', '패스트푸드': '#2563eb',
-  '할인점/슈퍼마켓': '#0ea5e9', '약국': '#7dd3fc', '제과점': '#3b82f6',
-  '일식': '#6366f1', '개인병원': '#a5b4fc', '안경,콘텍트렌즈': '#818cf8',
-  '공연장,극장': '#c7d2fe', '관광민예,선물용품': '#dbeafe', '기타4': '#e0e7ff',
-  '서적': '#bfdbfe', '인쇄,출판': '#93c5fd', '전자상거래(다품목취급)': '#60a5fa',
-  '식품류제조업': '#38BDF8', '인형++및++완구++아동용++자전거': '#1e73be',
+  '교통':        '#60a5fa',
+  '카페/음료':   '#38BDF8',
+  '식사':        '#1e73be',
+  '편의점':      '#93c5fd',
+  '쇼핑/온라인': '#2563eb',
+  '제과/베이커리':'#0ea5e9',
+  '선물/상품권': '#7dd3fc',
+  '의료/약국':   '#1d4ed8',
+  '완구/취미':   '#6366f1',
+  '서적':        '#a5b4fc',
+  '기타':        '#94a3b8',
 }
 
 const TIME_ICONS = {
@@ -60,18 +64,18 @@ export default function ReportDetail() {
       })()
     : null
 
-  // 시간대 배열
+  // 시간대 배열 (데이터 없으면 0으로 표시)
   const timeList = txData
     ? (() => {
         const total = Object.values(txData.timepattern_price).reduce((a, b) => a + b, 0)
-        return TIME_ORDER
-          .filter(label => txData.timepattern_price[label])
-          .map(label => ({
-            label,
-            amount: txData.timepattern_price[label],
-            pct: Math.round((txData.timepattern_price[label] / total) * 100),
-            icon: TIME_ICONS[label],
-          }))
+        return TIME_ORDER.map(label => ({
+          label,
+          amount: txData.timepattern_price[label] ?? 0,
+          pct: txData.timepattern_price[label]
+            ? Math.round((txData.timepattern_price[label] / total) * 100)
+            : 0,
+          icon: TIME_ICONS[label],
+        }))
       })()
     : []
 
@@ -167,8 +171,8 @@ export default function ReportDetail() {
                     <div
                       className="h-2 rounded-full"
                       style={{
-                        width: `${t.pct}%`,
-                        background: '#1e73be',
+                        width: t.pct === 0 ? '2%' : `${t.pct}%`,  // 0%면 최소 너비
+                        background: t.pct === 0 ? '#e5e7eb' : '#1e73be',  // 0%면 회색
                       }}
                     />
                   </div>

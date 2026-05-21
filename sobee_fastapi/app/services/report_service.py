@@ -1,6 +1,7 @@
 from app.services.lifecycle_service import engine
 from sqlalchemy import text
 import pandas as pd
+from datetime import datetime
 
 # DB 카테고리 → 통합 카테고리 매핑
 CATEGORY_MAP = {
@@ -14,7 +15,7 @@ CATEGORY_MAP = {
     # 카페/음료
     '서양식전문점(커피류)':                  '카페/음료',
     '커피전문점':                           '카페/음료',
-    '결제대행(PG)':                         '카페/음료',  # 스타벅스 포함
+    '결제대행(PG)':                         '카페/음료',
 
     # 식사
     '일반음식점':                           '식사',
@@ -76,13 +77,21 @@ CATEGORY_COLORS = {
     '기타':        '#94a3b8',
 }
 
-def get_transaction_report(user_id: int):
+def get_transaction_report(user_id: int):  
+    
+    # 이번 달 연월 계산
+    current_ym = datetime.now().strftime("%Y%m")  # ex) "202605"
+
     df = pd.read_sql(text("""
         SELECT payment_category, payment_time, payment_date, payment_out
         FROM transactions
         WHERE user_id = :user_id
         AND payment_out > 0
-    """), engine, params={"user_id": user_id})
+        AND payment_date LIKE :ym
+    """), engine, params={
+        "user_id": user_id,
+        "ym": f"{current_ym}%"  # "202605%" → 이번 달 데이터만
+    })
 
     if df.empty:
         return {
@@ -142,6 +151,7 @@ def get_transaction_report(user_id: int):
     return {
         "payment_price": int(df['payment_out'].sum()),
         "payment_total_num": len(df),
+        "payment_days": df['payment_date'].nunique(),
         "category_price": df.groupby('payment_category')['payment_out'].sum().astype(int).to_dict(),
         "timepattern_price": df.groupby('time_label')['payment_out'].sum().astype(int).to_dict(),
         "weekly_price": weekly_price,

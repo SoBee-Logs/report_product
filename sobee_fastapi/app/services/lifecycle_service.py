@@ -40,7 +40,7 @@ async def predict_lifecycle(request: LifecycleRequest) -> LifecycleResponse:
     # 트랜잭션 없으면 fallback
     if df_tx.empty:
         return LifecycleResponse(
-            lifecycle_stage="사회초년생",
+            lifecycle_stage="생애주기가 없습니다",
             description="트랜잭션 데이터가 없습니다."
         )
 
