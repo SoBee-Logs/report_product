@@ -36,6 +36,7 @@ export default function Home() {
 
         <button
           type="button"
+          onClick={() => navigate('/report', { state: { scrollTo: 'aiRecommend' } })}
           className="mx-5 w-[calc(100%-40px)] py-3.5 rounded-xl bg-[#1e73be] text-white text-[13px] font-bold shadow-md"
         >
           페르소나 기반 금융 상품 추천 바로가기

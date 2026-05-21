@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   PieChart, Pie, Cell, Tooltip,
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
@@ -27,10 +27,20 @@ const API_BASE = 'http://localhost:8000'
 
 export default function Report() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const aiRecommendRef = useRef(null)
   const [lifecycle, setLifecycle] = useState(null)
   const [txData,    setTxData]    = useState(null)
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState(null)
+
+  useEffect(() => {
+    if (location.state?.scrollTo === 'aiRecommend' && aiRecommendRef.current) {
+      setTimeout(() => {
+        aiRecommendRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 300)
+    }
+  }, [loading, location.state])
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -134,7 +144,7 @@ export default function Report() {
       </div>
 
       {/* 금융상품 추천 - 목업 유지 */}
-      <div className="flex flex-col gap-2">
+      <div ref={aiRecommendRef} className="flex flex-col gap-2">
         <p className="text-xs text-gray-500 font-semibold">🤖 AI 상품 추천</p>
         {MOCK_PRODUCTS.map((p) => (
           <div key={p.id} className="rounded-2xl border border-gray-100 p-4 shadow-sm">
