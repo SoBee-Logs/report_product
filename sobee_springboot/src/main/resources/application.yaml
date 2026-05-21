@@ -18,3 +18,14 @@ spring:
 finance:
   api:
     key: ${FINANCE_API_KEY}
+
+
+cardgorilla:
+  api:
+    url: https://api.cardgorilla.com
+    key: ${CARDGORILLA_API_KEY}   # 환경변수로 관리
+
+fss:
+  api:
+    url: https://finlife.fss.or.kr/finlifeapi
+    key: ${FINANCE_API_KEY}   # ← 이렇게 변경
