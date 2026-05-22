@@ -37,8 +37,15 @@ const FALLBACK_SUGGEST = [
 ];
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
+const TYPE_ICON = {
+    card:      { emoji: "💳", bg: "linear-gradient(135deg, #2A7FD8, #0E3F78)" },
+    savings:   { emoji: "🏦", bg: "linear-gradient(135deg, #1D9E75, #0A6B4E)" },
+    insurance: { emoji: "🛡️", bg: "linear-gradient(135deg, #7B5EA7, #4A3570)" },
+};
+
 function ProductCard({ item, onClick }) {
-    const { product_name, product_company, product_img_url, content } = item;
+    const { product_name, product_company, product_img_url, product_type, content } = item;
+    const typeStyle = TYPE_ICON[product_type] || TYPE_ICON.card;
 
     return (
         <div
@@ -70,7 +77,7 @@ function ProductCard({ item, onClick }) {
                     borderRadius: 8,
                     overflow: "hidden",
                     flexShrink: 0,
-                    background: "linear-gradient(135deg, #2A7FD8, #0E3F78)",
+                    background: typeStyle.bg,
                     boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
                 }}
             >
@@ -82,9 +89,8 @@ function ProductCard({ item, onClick }) {
                         onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
                 ) : (
-                    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "6px 8px" }}>
-                        <span style={{ color: "rgba(255,255,255,0.9)", fontSize: 9, fontWeight: 700 }}>WOORI<br />CARD</span>
-                        <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 8 }}>●●●●<br />1234</span>
+                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>
+                        {typeStyle.emoji}
                     </div>
                 )}
             </div>
@@ -249,6 +255,7 @@ export default function ProductSearch() {
     );
     const [aiText, setAiText] = useState("");
     const [products, setProducts] = useState([]);
+    const [activeTab, setActiveTab] = useState("card");
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -275,8 +282,11 @@ export default function ProductSearch() {
         try {
             const data = await api.search(searchQuery);
             setAiText(data.AI_text || data.ai_text || "");
-            setProducts(data.products || []);
+            const fetched = data.products || [];
+            setProducts(fetched);
             setIsSearched(true);
+            const firstTab = ["card", "savings", "insurance"].find(t => fetched.some(p => p.product_type === t)) || "card";
+            setActiveTab(firstTab);
         } catch (e) {
             setError("검색 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.");
         } finally {
@@ -296,6 +306,13 @@ export default function ProductSearch() {
             navigate("/");
         }
     };
+
+    const TABS = [
+        { key: "card",      label: "💳 카드" },
+        { key: "savings",   label: "🏦 예적금" },
+        { key: "insurance", label: "🛡️ 미니보험" },
+    ];
+    const tabProducts = products.filter(p => p.product_type === activeTab);
 
     const getQuestionText = (q) =>
         typeof q === "string" ? q : q.question || q.text || q.content || "";
@@ -369,21 +386,59 @@ export default function ProductSearch() {
                         </button>
                     </div>
                 ) : isSearched ? (
-                    products.length > 0 ? (
-                        products.map((item, i) => (
-                            <ProductCard
-                                key={i}
-                                item={item}
-                                onClick={(it) => { setSelectedItem(it); setActivePage("detail"); }}
-                            />
-                        ))
-                    ) : (
-                        <div style={{ textAlign: "center", padding: "40px 0", color: "#8494A8", fontSize: 14 }}>
-                            <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
-                            검색 결과가 없어요<br />
-                            <span style={{ fontSize: 12 }}>다른 키워드로 검색해보세요</span>
+                    <>
+                        {/* 탭 바 */}
+                        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                            {TABS.map(({ key, label }) => {
+                                const count = products.filter(p => p.product_type === key).length;
+                                const isActive = activeTab === key;
+                                return (
+                                    <button
+                                        key={key}
+                                        onClick={() => setActiveTab(key)}
+                                        style={{
+                                            flex: 1, padding: "8px 0", borderRadius: 10,
+                                            background: isActive ? WOORI_BLUE : "#fff",
+                                            color: isActive ? "#fff" : "#8494A8",
+                                            fontWeight: isActive ? 700 : 500,
+                                            fontSize: 12, cursor: "pointer",
+                                            border: isActive ? "none" : "1.5px solid #EEF1F5",
+                                            transition: "all 0.15s",
+                                        }}
+                                    >
+                                        {label}
+                                        {count > 0 && (
+                                            <span style={{
+                                                marginLeft: 4, fontSize: 10,
+                                                background: isActive ? "rgba(255,255,255,0.3)" : "#EEF1F5",
+                                                color: isActive ? "#fff" : "#8494A8",
+                                                borderRadius: 99, padding: "1px 5px",
+                                            }}>
+                                                {count}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
-                    )
+
+                        {/* 탭 콘텐츠 */}
+                        {tabProducts.length > 0 ? (
+                            tabProducts.map((item, i) => (
+                                <ProductCard
+                                    key={i}
+                                    item={item}
+                                    onClick={(it) => { setSelectedItem(it); setActivePage("detail"); }}
+                                />
+                            ))
+                        ) : (
+                            <div style={{ textAlign: "center", padding: "40px 0", color: "#8494A8", fontSize: 14 }}>
+                                <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
+                                이 카테고리에 결과가 없어요<br />
+                                <span style={{ fontSize: 12 }}>다른 탭을 확인해보세요</span>
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <>
                         {/* 추천 질문 */}

@@ -16,6 +16,7 @@ public class SearchResponseDto {
         private String product_name;
         private String product_company;
         private String product_img_url;
+        private String product_type;  // "card" | "savings" | "insurance"
         private ContentDto content;
     }
 
