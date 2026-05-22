@@ -59,6 +59,7 @@ rignore==0.7.6
 rpds-py==0.30.0
 s3transfer==0.17.0
 scikit-learn==1.6.1
+lightgbm==4.6.0
 scipy==1.17.1
 sentry-sdk==2.60.0
 shellingham==1.5.4

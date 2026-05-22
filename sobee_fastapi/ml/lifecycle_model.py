@@ -368,12 +368,12 @@ class LifecycleModel:
         for col, categories in CAT_MAP.items():
             if categories:
                 mask = df['payment_category'].isin(categories)
-                features[col] = float(df[mask]['payment_out'].sum() / months)
+                features[col] = float(df[mask]['payment_price'].sum() / months)
             else:
                 features[col] = 0.0
 
         # 총이용금액
-        features['TOT_USE_AM']   = float(df['payment_out'].sum() / months)
+        features['TOT_USE_AM']   = float(df['payment_price'].sum() / months)
         features['CRDSL_USE_AM'] = features['TOT_USE_AM']
         features['CNF_USE_AM']   = 0.0
 
@@ -463,10 +463,10 @@ if __name__ == "__main__":
 
     # ── STEP 4. 결제내역 조회 ───────────────────
     df_tx = pd.read_sql(text("""
-        SELECT payment_category, payment_out, payment_date
+        SELECT payment_category, payment_price, payment_date
         FROM transactions
         WHERE user_id = :uid
-          AND payment_out > 0
+          AND payment_price > 0
     """), engine, params={"uid": user_id})
 
     if df_tx.empty:
@@ -481,7 +481,7 @@ if __name__ == "__main__":
     _days   = (_dates.max() - _dates.min()).days + 1
     _months = max(_days / 30, 0.1)
     cat_summary = (
-        df_tx.groupby('payment_category')['payment_out']
+        df_tx.groupby('payment_category')['payment_price']
         .agg(['sum', 'count'])
         .rename(columns={'sum': '총지출', 'count': '건수'})
         .sort_values('총지출', ascending=False)
