@@ -186,7 +186,7 @@ export default function Report() {
         <p className="text-xs text-gray-400 mb-1">📊 소비 리포트</p>
         <div className="flex items-end gap-2">
           <span className="text-2xl font-extrabold text-gray-900">
-            {txData ? txData.payment_price.toLocaleString() : '-'}원
+            {txData ? txData.payment_out.toLocaleString() : '-'}원
           </span>
         </div>
         <div className="flex gap-3 mt-3">

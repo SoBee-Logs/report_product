@@ -156,7 +156,7 @@ async def get_ai_insight(user_id: int) -> AiInsightResponse:
         life_stage_code = None
 
     df_tx = pd.read_sql(text("""
-        SELECT payment_category, payment_price
+        SELECT payment_category, payment_out
         FROM transactions
         WHERE user_id = :user_id
 
@@ -166,7 +166,7 @@ async def get_ai_insight(user_id: int) -> AiInsightResponse:
     cate_name = '모든가맹점'
     if not df_tx.empty:
         df_tx['unified'] = df_tx['payment_category'].map(RAW_TO_UNIFIED).fillna('기타')
-        top_category = df_tx.groupby('unified')['payment_price'].sum().idxmax()
+        top_category = df_tx.groupby('unified')['payment_out'].sum().idxmax()
         cate_name = CATEGORY_TO_CATE.get(top_category, '모든가맹점')
 
     card_item = _query_card(cate_name, top_category)
