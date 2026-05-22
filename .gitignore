@@ -2,6 +2,8 @@
 **/.DS_Store
 .DS_Store
 
+venv/
+
 # AWS 키
 *.pem
 key.pem
