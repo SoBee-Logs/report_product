@@ -85,7 +85,7 @@ def _build_transaction_summary(transactions: list[dict], vlm_descriptions: list[
 
     for t in transactions:
         category = (t.get("payment_category") or "기타").strip() or "기타"
-        amount = int(t.get("payment_price") or 0)
+        amount = int(t.get("payment_out") or 0)
         category_spend[category] += amount
 
         hour = _extract_hour(t.get("payment_time"))

@@ -84,7 +84,7 @@ def get_transaction_report(user_id: int):
     last_day = last_day.strftime("%Y-%m-%d")
 
     df = pd.read_sql(text("""
-        SELECT payment_category, payment_time, payment_date, payment_price
+        SELECT payment_category, payment_time, payment_date, payment_out
         FROM transactions
         WHERE user_id = :user_id
         AND payment_date BETWEEN :start AND :end
@@ -96,7 +96,7 @@ def get_transaction_report(user_id: int):
 
     if df.empty:
         return {
-            "payment_price": 0,
+            "payment_out": 0,
             "payment_total_num": 0,
             "category_price": {},
             "timepattern_price": {},
@@ -145,14 +145,14 @@ def get_transaction_report(user_id: int):
 
     # 상위 2개 카테고리
     top2_categories = (
-        df.groupby('payment_category')['payment_price']
+        df.groupby('payment_category')['payment_out']
         .sum().nlargest(2).index.tolist()
     )
 
     # 주차별 × 상위 2개 카테고리 집계
     df_top2 = df[df['payment_category'].isin(top2_categories)]
     weekly_pivot = (
-        df_top2.groupby(['week_label', 'payment_category'])['payment_price']
+        df_top2.groupby(['week_label', 'payment_category'])['payment_out']
         .sum().astype(int).unstack(fill_value=0)
     )
 
@@ -166,11 +166,11 @@ def get_transaction_report(user_id: int):
             weekly_price.append(row)
 
     return {
-        "payment_price": int(df['payment_price'].sum()),
+        "payment_out": int(df['payment_out'].sum()),
         "payment_total_num": len(df),
         "payment_days": df['payment_date'].nunique(),
-        "category_price": df.groupby('payment_category')['payment_price'].sum().astype(int).to_dict(),
-        "timepattern_price": df.groupby('time_label')['payment_price'].sum().astype(int).to_dict(),
+        "category_price": df.groupby('payment_category')['payment_out'].sum().astype(int).to_dict(),
+        "timepattern_price": df.groupby('time_label')['payment_out'].sum().astype(int).to_dict(),
         "weekly_price": weekly_price,
         "weekly_categories": top2_categories,
         "category_colors": CATEGORY_COLORS,
