@@ -1,5 +1,6 @@
 package com.sobee.sobee.domain.user.service;
 
+import com.sobee.sobee.domain.user.dto.UserPersonaDto;
 import com.sobee.sobee.domain.user.dto.UserRequestDto;
 import com.sobee.sobee.domain.user.entity.User;
 import com.sobee.sobee.domain.user.repository.UserRepository;
@@ -27,5 +28,11 @@ public class UserService {
     public User login(String email, String password) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("이메일이 없습니다."));
+    }
+
+    public UserPersonaDto getPersona(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
+        return new UserPersonaDto(user.getAvatarName(), user.getAvatarExplane(), user.getAvatarImgUrl());
     }
 }

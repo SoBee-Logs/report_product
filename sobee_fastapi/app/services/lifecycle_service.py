@@ -34,11 +34,11 @@ async def predict_lifecycle(request: LifecycleRequest) -> LifecycleResponse:
     # DB에서 트랜잭션 가져오기 (payment_date 추가)
     df_tx = pd.read_sql(text("""
         SELECT payment_category,
-               payment_out,
+               payment_price,
                payment_date
         FROM transactions
         WHERE user_id = :user_id
-        AND payment_out > 0
+        AND payment_price > 0
     """), engine, params={"user_id": user_id})
 
     # DB에서 나이/성별 가져오기
@@ -82,7 +82,7 @@ async def predict_lifecycle(request: LifecycleRequest) -> LifecycleResponse:
         })
 
     # 카테고리별 지출 TOP 3 분석
-    category_summary = df_tx.groupby('payment_category')['payment_out'].sum()
+    category_summary = df_tx.groupby('payment_category')['payment_price'].sum()
     top3     = category_summary.nlargest(3)
     top3_str = ", ".join([f"{cat}({int(amt):,}원)" for cat, amt in top3.items()])
 

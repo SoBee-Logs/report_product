@@ -1,5 +1,6 @@
 package com.sobee.sobee.domain.user.controller;
 
+import com.sobee.sobee.domain.user.dto.UserPersonaDto;
 import com.sobee.sobee.domain.user.dto.UserRequestDto;
 import com.sobee.sobee.domain.user.entity.User;
 import com.sobee.sobee.domain.user.service.UserService;
@@ -24,5 +25,10 @@ public class UserController {
     public ResponseEntity<String> login(@RequestBody UserRequestDto dto) {
         User user = userService.login(dto.getEmail(), null);
         return ResponseEntity.ok("로그인 성공: " + user.getEmail());
+    }
+
+    @GetMapping("/{userId}/persona")
+    public ResponseEntity<UserPersonaDto> getPersona(@PathVariable Long userId) {
+        return ResponseEntity.ok(userService.getPersona(userId));
     }
 }

@@ -158,7 +158,8 @@ async def get_ai_insight(user_id: int) -> AiInsightResponse:
     df_tx = pd.read_sql(text("""
         SELECT payment_category, payment_price
         FROM transactions
-        WHERE user_id = :user_id AND payment_price > 0
+        WHERE user_id = :user_id
+
     """), engine, params={"user_id": user_id})
 
     top_category = '기타'

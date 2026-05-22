@@ -70,6 +70,7 @@ export default function Report() {
   const navigate = useNavigate()
   const location = useLocation()
   const aiRecommendRef = useRef(null)
+  const [persona,        setPersona]        = useState(null)
   const [lifecycle,      setLifecycle]      = useState(null)
   const [txData,         setTxData]         = useState(null)
   const [recommendData,  setRecommendData]  = useState(null)
@@ -88,6 +89,11 @@ export default function Report() {
     const fetchAll = async () => {
       try {
         setLoading(true)
+        fetch(`http://localhost:8080/api/users/${USER_ID}/persona`)
+          .then(r => r.json())
+          .then(setPersona)
+          .catch(() => {})
+
         const [lcRes, txRes] = await Promise.allSettled([
           // ✅ GET /api/lifecycle/{user_id} → 저장된 생애주기 조회
           fetch(`${API_BASE}/api/lifecycle/${USER_ID}`).then(r => r.json()),
@@ -160,13 +166,18 @@ export default function Report() {
   return (
     <div className="flex flex-col gap-4 pt-4 px-4 pb-24 overflow-y-auto">
 
-      {/* 페르소나 배너 - 목업 유지*/}
+      {/* 페르소나 배너 */}
       <div className="rounded-2xl bg-[#1e73be] text-white p-4 flex items-center gap-3">
-        <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-2xl shrink-0">🐝</div>
+        <div className="w-14 h-14 rounded-full bg-white/20 overflow-hidden shrink-0">
+          {persona?.avatarImgUrl
+            ? <img src={persona.avatarImgUrl} alt="페르소나" className="w-full h-full object-cover" />
+            : <div className="w-full h-full flex items-center justify-center text-2xl">🐝</div>
+          }
+        </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs text-blue-100 mb-0.5">나의 소비 페르소나</p>
-          <p className="font-bold text-base leading-tight">야행성 도시 탐험가</p>
-          <p className="text-xs text-blue-100 mt-0.5 truncate">밤 점심, 저녁 외식 비중이 높고, 주로 도심에서</p>
+          <p className="font-bold text-base leading-tight">{persona?.avatarName ?? '분석 중...'}</p>
+          <p className="text-xs text-blue-100 mt-0.5 truncate">{persona?.avatarExplane ?? ''}</p>
         </div>
       </div>
 
