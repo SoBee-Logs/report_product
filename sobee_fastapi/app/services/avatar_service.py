@@ -19,13 +19,13 @@ A single wide illustration in Pixar-style soft 3D clay render. Overall canvas: 1
 
 The scene contains TWO elements seamlessly combined:
 
-1. CHARACTER (occupies roughly the left 1/3 of the canvas in a 3:4 portrait area):
+1. CHARACTER (centered horizontally and vertically on the canvas — the character is the focal point of the entire composition):
 A cute chubby bee-inspired mascot character in high-quality 3D render style, based on a simple flat illustration design.
 The character has a rounded blob-shaped body with a soft matte clay texture, pastel blue upper body, and a yellow-and-blue striped belly.
 Small translucent wings on both sides, short blue antennae on top of the head, tiny black dot eyes, and a warm smiling face.
 Rounded yellow feet and tiny stubby arms.
 Pixar-style 3D character design, clean topology, soft global illumination, subtle ambient occlusion, smooth shading, toy-like proportions, highly appealing mascot design.
-Front-facing full body pose. The ENTIRE character from the tip of the antennae to the bottom of the feet must be fully visible — do not cut off any part of the body.
+Front-facing full body pose, placed exactly at the horizontal and vertical center of the canvas. The ENTIRE character from the tip of the antennae to the bottom of the feet must be fully visible — do not cut off any part of the body.
 Minimal but expressive facial features, soft lighting, modern mobile app mascot aesthetic, polished 3D animation studio quality.
 
 Consumer persona traits applied to the character:
@@ -39,13 +39,14 @@ Based on these traits, naturally generate on the character:
 - matching facial expression and pose
 - suitable props and items
 
-2. BACKGROUND (fills the remaining right 2/3 and the full scene behind the character):
+2. BACKGROUND (fills the entire canvas behind and around the character):
 A richly detailed environment that reflects the persona's lifestyle and active time pattern.
 Same Pixar 3D clay render art style and color palette as the character — fully cohesive visual language.
 Cozy, vibrant, and emotionally expressive setting. Soft pastel colors, warm lighting.
+The background wraps symmetrically around the centered character — balanced left and right, with depth and context extending in all directions.
 
 The character and background must feel like one seamlessly integrated scene — not a composited cutout.
-Final result: a premium wide banner card for a mobile finance app, cute and emotionally appealing.
+Final result: a premium wide banner card for a mobile finance app, cute and emotionally appealing, with the mascot character prominently centered.
 """
 
 _ANALYSIS_PROMPT = """
@@ -55,7 +56,8 @@ _ANALYSIS_PROMPT = """
 이 소비 데이터를 분석하여 아래 JSON 형식으로만 응답하세요 (다른 설명 없이):
 {{
     "title": "아바타 타이틀 (예: '야행성 도시 탐험가'처럼 2-4단어의 감성적 한국어 별명)",
-    "description": "이 페르소나가 도출된 이유를 소비 데이터 기반으로 2문장 이내 한국어로 서술. 예시 없이 실제 데이터 근거만.",
+    "description": "이 페르소나를 한 문장으로 소개하는 설명. 캐릭터의 성격과 라이프스타일 중심으로.",
+    "change_reason": "이번 주 소비 데이터에서 눈에 띄는 패턴을 근거로, 아바타가 이렇게 선정된 이유를 2문장 이내 한국어로 서술. 실제 데이터 수치 언급.",
     "lifestyle": "Lifestyle description in English (2-3 sentences)",
     "consumption_habit": "Consumption habit description in English (2-3 sentences)",
     "time_pattern": "Active time pattern description in English (1-2 sentences)",
@@ -219,6 +221,7 @@ async def _generate_and_save_avatar(user_id: int, start_date: str, end_date: str
         avatar_name=analysis["title"],
         avatar_explane=analysis["description"],
         avatar_img_url=avatar_image_url,
+        avatar_change_reason=analysis["change_reason"],
     )
 
     return AvatarResponse(

@@ -32,6 +32,15 @@ public class User {
     @Column(name = "age")
     private Integer age;
 
+    @Column(name = "avatar_name")
+    private String avatarName;
+
+    @Column(name = "avatar_explane")
+    private String avatarExplane;
+
+    @Column(name = "avatar_img_url")
+    private String avatarImgUrl;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 }
