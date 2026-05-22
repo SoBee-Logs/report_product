@@ -37,8 +37,15 @@ const FALLBACK_SUGGEST = [
 ];
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
+const TYPE_ICON = {
+    card:      { emoji: "💳", bg: "linear-gradient(135deg, #2A7FD8, #0E3F78)" },
+    savings:   { emoji: "🏦", bg: "linear-gradient(135deg, #1D9E75, #0A6B4E)" },
+    insurance: { emoji: "🛡️", bg: "linear-gradient(135deg, #7B5EA7, #4A3570)" },
+};
+
 function ProductCard({ item, onClick }) {
-    const { product_name, product_company, product_img_url, content } = item;
+    const { product_name, product_company, product_img_url, product_type, content } = item;
+    const typeStyle = TYPE_ICON[product_type] || TYPE_ICON.card;
 
     return (
         <div
@@ -70,7 +77,7 @@ function ProductCard({ item, onClick }) {
                     borderRadius: 8,
                     overflow: "hidden",
                     flexShrink: 0,
-                    background: "linear-gradient(135deg, #2A7FD8, #0E3F78)",
+                    background: typeStyle.bg,
                     boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
                 }}
             >
@@ -82,9 +89,8 @@ function ProductCard({ item, onClick }) {
                         onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
                 ) : (
-                    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "6px 8px" }}>
-                        <span style={{ color: "rgba(255,255,255,0.9)", fontSize: 9, fontWeight: 700 }}>WOORI<br />CARD</span>
-                        <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 8 }}>●●●●<br />1234</span>
+                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>
+                        {typeStyle.emoji}
                     </div>
                 )}
             </div>
