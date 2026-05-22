@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import avatar, recommend, lifecycle, report 
+from fastapi.responses import JSONResponse
+from app.api import avatar, recommend, lifecycle, report, internal
 from app.db.connection import close_pool
+from app.core.config import settings
 
 
 @asynccontextmanager
@@ -25,10 +27,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def internal_auth_middleware(request: Request, call_next):
+    if request.url.path.startswith("/internal/"):
+        token = request.headers.get("X-Internal-Secret")
+        if not token or token != settings.INTERNAL_SECRET_KEY:
+            return JSONResponse(status_code=403, detail="접근 불가")
+    return await call_next(request)
+
 app.include_router(avatar.router, prefix="/api/avatar", tags=["avatar"])
 app.include_router(recommend.router, prefix="/api/recommend", tags=["recommend"])
 app.include_router(lifecycle.router, prefix="/api/lifecycle", tags=["lifecycle"])
-app.include_router(report.router, tags=["report"])  
+app.include_router(report.router, tags=["report"])
+app.include_router(internal.router)
 
 
 @app.get("/health")

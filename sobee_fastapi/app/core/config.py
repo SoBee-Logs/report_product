@@ -18,9 +18,11 @@ class Settings(BaseSettings):
     csv_path: str = ""
     model_path: str = "ml/model.pkl"
 
+    FASTAPI_BASE_URL: str = "http://localhost:8000"
+    INTERNAL_SECRET_KEY: str = ""
 
     class Config:
         env_file = ".env"
-        extra = "ignore"    
+        extra = "ignore"
 
 settings = Settings()

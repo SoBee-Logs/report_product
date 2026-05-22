@@ -14,7 +14,7 @@ class AvatarResponse(BaseModel):
 class RecommendRequest(BaseModel):
     user_id: int
     query: str
-    lifecycle_stage: Optional[str] = None
+    life_stage_code: Optional[str] = None
 
 class RecommendResponse(BaseModel):
     product_id: int
@@ -27,8 +27,32 @@ class LifecycleRequest(BaseModel):
 
 # LifecycleResponse
 class LifecycleResponse(BaseModel):
-    lifecycle_stage: str
+    life_stage_code: str
     description: str
+
+# 내부 파이프라인
+class SyncRequest(BaseModel):
+    user_id: int
+
+class SyncResponse(BaseModel):
+    message: str
+
+class MappingRequest(BaseModel):
+    user_id: int
+
+class MappingResponse(BaseModel):
+    message: str
+
+class PersonaGenerateRequest(BaseModel):
+    user_id: int
+    start_date: str  # YYYY-MM-DD
+    end_date: str    # YYYY-MM-DD
+
+class DiaryGenerateRequest(BaseModel):
+    user_id: int
+
+class DiaryGenerateResponse(BaseModel):
+    message: str
 
 # AI 상품 추천
 class AiInsightContent(BaseModel):

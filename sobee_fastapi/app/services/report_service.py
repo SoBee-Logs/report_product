@@ -1,7 +1,7 @@
 from app.services.lifecycle_service import engine
 from sqlalchemy import text
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # DB 카테고리 → 통합 카테고리 매핑
 CATEGORY_MAP = {
@@ -77,20 +77,21 @@ CATEGORY_COLORS = {
     '기타':        '#94a3b8',
 }
 
-def get_transaction_report(user_id: int):  
-    
-    # 이번 달 연월 계산
-    current_ym = datetime.now().strftime("%Y%m")  # ex) "202605"
+def get_transaction_report(user_id: int):
+    now = datetime.now()
+    first_day = now.replace(day=1).strftime("%Y-%m-%d")
+    last_day = (now.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+    last_day = last_day.strftime("%Y-%m-%d")
 
     df = pd.read_sql(text("""
-        SELECT payment_category, payment_time, payment_date, payment_out
+        SELECT payment_category, payment_time, payment_date, payment_price
         FROM transactions
         WHERE user_id = :user_id
-        AND payment_out > 0
-        AND payment_date LIKE :ym
+        AND payment_date BETWEEN :start AND :end
     """), engine, params={
         "user_id": user_id,
-        "ym": f"{current_ym}%"  # "202605%" → 이번 달 데이터만
+        "start": first_day,
+        "end": last_day,
     })
 
     if df.empty:
@@ -107,8 +108,16 @@ def get_transaction_report(user_id: int):
     df['payment_category'] = df['payment_category'].map(CATEGORY_MAP).fillna('기타')
 
     def classify_time(t):
-        if t is None: return '기타'
-        hour = int(str(t).zfill(6)[:2])
+        if t is None:
+            return '기타'
+        # aiomysql TIME 타입은 timedelta로 반환됨
+        if isinstance(t, timedelta):
+            hour = int(t.total_seconds() // 3600)
+        else:
+            try:
+                hour = int(str(t)[:2])
+            except (ValueError, TypeError):
+                return '기타'
         if 0 <= hour < 6:      return '새벽'
         elif 6 <= hour < 11:   return '아침'
         elif 11 <= hour < 14:  return '점심'
@@ -116,8 +125,16 @@ def get_transaction_report(user_id: int):
         else:                  return '심야'
 
     def classify_week(d):
-        if d is None: return '기타'
-        day = int(str(d)[6:8])
+        if d is None:
+            return '기타'
+        # DATE 타입은 datetime.date 객체로 반환됨
+        if hasattr(d, 'day'):
+            day = d.day
+        else:
+            try:
+                day = int(str(d)[8:10])
+            except (ValueError, TypeError):
+                return '기타'
         if day <= 7:    return '1주'
         elif day <= 14: return '2주'
         elif day <= 21: return '3주'
@@ -128,14 +145,14 @@ def get_transaction_report(user_id: int):
 
     # 상위 2개 카테고리
     top2_categories = (
-        df.groupby('payment_category')['payment_out']
+        df.groupby('payment_category')['payment_price']
         .sum().nlargest(2).index.tolist()
     )
 
     # 주차별 × 상위 2개 카테고리 집계
     df_top2 = df[df['payment_category'].isin(top2_categories)]
     weekly_pivot = (
-        df_top2.groupby(['week_label', 'payment_category'])['payment_out']
+        df_top2.groupby(['week_label', 'payment_category'])['payment_price']
         .sum().astype(int).unstack(fill_value=0)
     )
 
@@ -149,11 +166,11 @@ def get_transaction_report(user_id: int):
             weekly_price.append(row)
 
     return {
-        "payment_price": int(df['payment_out'].sum()),
+        "payment_price": int(df['payment_price'].sum()),
         "payment_total_num": len(df),
         "payment_days": df['payment_date'].nunique(),
-        "category_price": df.groupby('payment_category')['payment_out'].sum().astype(int).to_dict(),
-        "timepattern_price": df.groupby('time_label')['payment_out'].sum().astype(int).to_dict(),
+        "category_price": df.groupby('payment_category')['payment_price'].sum().astype(int).to_dict(),
+        "timepattern_price": df.groupby('time_label')['payment_price'].sum().astype(int).to_dict(),
         "weekly_price": weekly_price,
         "weekly_categories": top2_categories,
         "category_colors": CATEGORY_COLORS,
