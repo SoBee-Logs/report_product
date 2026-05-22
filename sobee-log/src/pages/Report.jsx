@@ -38,9 +38,8 @@ function RecommendCard({ item, index }) {
       <div className="flex-1 min-w-0">
         <span className="text-[10px] bg-blue-100 text-[#1e73be] rounded-full px-2 py-0.5 font-semibold">{label}</span>
         <p className="text-sm font-bold text-gray-900 mt-1 truncate">{product_name}</p>
-        <p className="text-[11px] text-gray-400 truncate">{product_company}</p>
-        {content?.header && (
-          <p className="text-[11px] text-[#1e73be] font-semibold mt-0.5 truncate">{content.header}</p>
+        {item.reason && (
+          <p className="text-[11px] text-[#1e73be] mt-0.5 leading-snug line-clamp-2">{item.reason}</p>
         )}
       </div>
 

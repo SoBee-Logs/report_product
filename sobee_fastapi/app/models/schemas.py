@@ -66,6 +66,7 @@ class AiInsightItem(BaseModel):
     product_company: str
     product_img_url: Optional[str] = None
     product_type: str  # 'card' | 'savings'
+    reason: Optional[str] = None
     content: Optional[AiInsightContent] = None
 
 class AiInsightResponse(BaseModel):
