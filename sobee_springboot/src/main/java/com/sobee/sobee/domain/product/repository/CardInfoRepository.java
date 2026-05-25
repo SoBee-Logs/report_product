@@ -15,6 +15,6 @@ public interface CardInfoRepository extends JpaRepository<CardInfo, Long> {
 
     List<CardInfo> findByIsDiscontinuedFalse();
 
-    @Query("SELECT c FROM CardInfo c WHERE c.cardName LIKE %:keyword% OR c.corpName LIKE %:keyword%")
+    @Query("SELECT c FROM CardInfo c WHERE (c.cardName LIKE %:keyword% OR c.corpName LIKE %:keyword%) AND c.isDiscontinued = false")
     List<CardInfo> searchByKeyword(@Param("keyword") String keyword);
 }
