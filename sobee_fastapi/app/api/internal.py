@@ -4,11 +4,13 @@ from app.models.schemas import (
     MappingRequest, MappingResponse,
     PersonaGenerateRequest, AvatarResponse,
     DiaryGenerateRequest, DiaryGenerateResponse,
+    ParseSearchRequest, ParseSearchResponse,
 )
 from app.services.sync_service import sync_transactions
 from app.services.mapping_service import run_mapping
 from app.services.avatar_service import _generate_and_save_avatar
 from app.services.diary_service import generate_diary
+from app.services.search_parse_service import parse_search_query
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 
@@ -34,3 +36,9 @@ async def persona_generate(request: PersonaGenerateRequest):
 async def diary_generate(request: DiaryGenerateRequest):
     result = await generate_diary(request.user_id)
     return DiaryGenerateResponse(message=result.get("message", "diary generated"))
+
+
+@router.post("/parse-search", response_model=ParseSearchResponse)
+async def parse_search(request: ParseSearchRequest):
+    result = await parse_search_query(request.query)
+    return ParseSearchResponse(**result)

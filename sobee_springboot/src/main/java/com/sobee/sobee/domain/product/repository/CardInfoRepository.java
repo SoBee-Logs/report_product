@@ -17,4 +17,7 @@ public interface CardInfoRepository extends JpaRepository<CardInfo, Long> {
 
     @Query("SELECT c FROM CardInfo c WHERE c.cardName LIKE %:keyword% OR c.corpName LIKE %:keyword%")
     List<CardInfo> searchByKeyword(@Param("keyword") String keyword);
+
+    @Query("SELECT DISTINCT c FROM CardInfo c JOIN c.benefits b WHERE b.cateName LIKE %:category%")
+    List<CardInfo> searchByBenefitCategory(@Param("category") String category);
 }

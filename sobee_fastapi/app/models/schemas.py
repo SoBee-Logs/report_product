@@ -86,3 +86,13 @@ class AiSearchTextRequest(BaseModel):
 
 class AiSearchTextResponse(BaseModel):
     ai_text: str
+
+# 시멘틱 검색 쿼리 파싱
+class ParseSearchRequest(BaseModel):
+    query: str
+
+class ParseSearchResponse(BaseModel):
+    product_types: List[str]
+    category: Optional[str] = None
+    keywords: List[str]
+    ai_text: str
