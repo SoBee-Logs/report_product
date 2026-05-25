@@ -294,6 +294,7 @@ export default function ProductSearch() {
         setQuery(searchQuery);
         setIsLoading(true);
         setError(null);
+        setAiText("");
 
         // 최근 질문 localStorage 저장 (중복 제거 + 최대 5개)
         const updated = [searchQuery, ...recentQuestions.filter((r) => r !== searchQuery)].slice(0, 5);
