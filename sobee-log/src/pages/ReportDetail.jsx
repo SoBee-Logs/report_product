@@ -28,7 +28,7 @@ export default function ReportDetail() {
   const [txData,  setTxData]  = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // ✅ 각 섹션 ref
+  // 각 섹션 ref
   const categoryRef = useRef(null)
   const weeklyRef = useRef(null)
   const timeRef = useRef(null)
@@ -40,7 +40,7 @@ export default function ReportDetail() {
       .finally(() => setLoading(false))
   }, [])
 
-  // ✅ 로딩 끝나고 ref 마운트된 뒤 해당 섹션으로 스크롤
+  // 로딩 끝나고 ref 마운트된 뒤 해당 섹션으로 스크롤
   useEffect(() => {
     if (loading) return
     const target = location.state?.scrollTo
@@ -106,7 +106,7 @@ export default function ReportDetail() {
   return (
     <div className="flex flex-col gap-4 pt-4 px-4 pb-24 overflow-y-auto">
 
-      {/* ✅ 이번 달 카테고리별 소비 - categoryRef */}
+      {/* 이번 달 카테고리별 소비 - categoryRef */}
       <div ref={categoryRef} className="rounded-2xl border border-gray-100 p-4 shadow-sm scroll-mt-4">
         <p className="text-xs text-gray-500 font-semibold mb-4">📊 이번 달 카테고리별 소비</p>
         <div className="flex flex-col gap-3">
@@ -133,7 +133,7 @@ export default function ReportDetail() {
         </div>
       </div>
 
-      {/* ✅ 이번주 소비 - weeklyRef */}
+      {/* 이번주 소비 - weeklyRef */}
       {thisWeekList && (
         <div ref={weeklyRef} className="flex flex-col gap-3 scroll-mt-4">
           <div className="flex items-center justify-between">
@@ -176,7 +176,7 @@ export default function ReportDetail() {
         </div>
       )}
 
-      {/* ✅ 시간대별 소비 금액 - timeRef */}
+      {/* 시간대별 소비 금액 - timeRef */}
       {timeList.length > 0 && (
         <div ref={timeRef} className="rounded-2xl border border-gray-100 p-4 shadow-sm scroll-mt-4">
           <p className="text-xs text-gray-500 font-semibold mb-3">⏰ 시간대별 소비 금액</p>

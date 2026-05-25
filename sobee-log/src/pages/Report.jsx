@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import {
   PieChart, Pie, Cell, Tooltip,
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
-  LineChart, Line, CartesianGrid
+  LineChart, Line, CartesianGrid, LabelList
 } from 'recharts'
 
 function RecommendCard({ item, index }) {
@@ -57,7 +57,6 @@ const TIME_ICONS = {
 const TIME_ORDER = ['새벽', '아침', '점심', '저녁', '심야']
 
 const API_BASE = 'http://localhost:8000'
-
 const USER_ID = 1
 
 export default function Report() {
@@ -182,7 +181,7 @@ export default function Report() {
           {[
             ['결제 건수', txData ? `${txData.payment_total_num}건` : '-'],
             ['결제 일수', txData ? `${txData.payment_days}일` : '-'],
-            ['기타정보', peakTime ? `${peakTime.icon}${peakTime.label}` : '-'],
+            ['결제 시간', peakTime ? `${peakTime.icon}${peakTime.label}` : '-'],
           ].map(([label, val]) => (
             <div key={label} className="flex-1 rounded-xl bg-gray-50 p-2 text-center">
               <p className="text-[10px] text-gray-400">{label}</p>
@@ -224,7 +223,7 @@ export default function Report() {
         {error && <p className="text-[10px] text-red-300 mt-1">※ 서버 연결 실패</p>}
       </div>
 
-      {/* ✅ 카테고리 도넛 차트 - 자세히보기 추가 */}
+      {/* 카테고리 도넛 + TOP3 통합 카드 */}
       {categoryList.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
           <div className="flex justify-between items-center mb-3">
@@ -233,9 +232,11 @@ export default function Report() {
               onClick={() => navigate('/report/detail', { state: { scrollTo: 'category' } })}
               className="text-[10px] text-[#1e73be] underline"
             >
-              자세히 보기 →
+              더보기 →
             </button>
           </div>
+
+          {/* 상단: 도넛 + 비중 % 리스트 */}
           <div className="flex items-center gap-4">
             <PieChart width={120} height={120}>
               <Pie data={categoryList} cx={55} cy={55} innerRadius={32} outerRadius={55} dataKey="value">
@@ -253,35 +254,38 @@ export default function Report() {
               ))}
             </div>
           </div>
+
+          {/* 구분선 + 하단: TOP3 막대 (금액) */}
+          {top3.length > 0 && (
+            <>
+              <div className="border-t border-gray-100 my-3" />
+              <p className="text-[10px] text-gray-400 mb-2">TOP 3 소비금액</p>
+              <ResponsiveContainer width="100%" height={130}>
+                <BarChart
+                  data={top3}
+                  layout="vertical"
+                  margin={{ left: 8, right: 80, top: 4, bottom: 4 }}
+                >
+                  <XAxis type="number" hide />
+                  <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} interval={0} />
+                  <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
+                    {top3.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    <LabelList
+                      dataKey="amount"
+                      position="right"
+                      formatter={(v) => `${v.toLocaleString()}원`}
+                      style={{ fontSize: 11, fill: '#374151', fontWeight: 600 }}
+                    />
+                  </Bar>
+                  <Tooltip formatter={(v) => `${v.toLocaleString()}원`} />
+                </BarChart>
+              </ResponsiveContainer>
+            </>
+          )}
         </div>
       )}
 
-      {/* TOP 3 바 차트 - scrollTo 추가 (카테고리 섹션으로 보냄) */}
-      {top3.length > 0 && (
-        <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <div className="flex justify-between items-center mb-3">
-            <p className="text-xs text-gray-500 font-semibold">TOP 3 소비 금액</p>
-            <button
-              onClick={() => navigate('/report/detail', { state: { scrollTo: 'category' } })}
-              className="text-[10px] text-[#1e73be] underline"
-            >
-              자세히 보기 →
-            </button>
-          </div>
-          <ResponsiveContainer width="100%" height={110}>
-            <BarChart data={top3} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
-              <XAxis type="number" hide />
-              <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} interval={0} />
-              <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
-                {top3.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Bar>
-              <Tooltip formatter={(v) => `${v.toLocaleString()}원`} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* ✅ 주별 라인 차트 - 자세히보기 추가 */}
+      {/* 주별 라인 차트 */}
       {txData?.weekly_price?.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
           <div className="flex justify-between items-center mb-3">
@@ -290,7 +294,7 @@ export default function Report() {
               onClick={() => navigate('/report/detail', { state: { scrollTo: 'weekly' } })}
               className="text-[10px] text-[#1e73be] underline"
             >
-              자세히 보기 →
+              더보기 →
             </button>
           </div>
           <ResponsiveContainer width="100%" height={100}>
@@ -325,7 +329,7 @@ export default function Report() {
         </div>
       )}
 
-      {/* ✅ 시간대 패턴 - 자세히보기 추가 */}
+      {/* 시간대 패턴 */}
       {timeList.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
           <div className="flex justify-between items-center mb-3">
@@ -334,7 +338,7 @@ export default function Report() {
               onClick={() => navigate('/report/detail', { state: { scrollTo: 'time' } })}
               className="text-[10px] text-[#1e73be] underline"
             >
-              자세히 보기 →
+              더보기 →
             </button>
           </div>
           <div className="flex justify-between">
