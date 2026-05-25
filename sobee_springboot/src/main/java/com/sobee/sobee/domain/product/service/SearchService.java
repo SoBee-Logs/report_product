@@ -49,6 +49,7 @@ public class SearchService {
                     .product_company(c.getCorpName())
                     .product_img_url(c.getCardImgUrl())
                     .product_type("card")
+                    .is_discontinued(Boolean.TRUE.equals(c.getIsDiscontinued()))
                     .content(SearchResponseDto.ContentDto.builder()
                             .header(header)
                             .middle(middle)

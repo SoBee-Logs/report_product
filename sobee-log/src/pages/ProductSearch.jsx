@@ -44,32 +44,53 @@ const TYPE_ICON = {
 };
 
 function ProductCard({ item, onClick }) {
-    const { product_name, product_company, product_img_url, product_type, content } = item;
+    const { product_name, product_company, product_img_url, product_type, is_discontinued, content } = item;
     const typeStyle = TYPE_ICON[product_type] || TYPE_ICON.card;
 
     return (
         <div
-            onClick={() => onClick(item)}
+            onClick={() => !is_discontinued && onClick(item)}
             style={{
+                position: "relative",
                 background: "#fff",
                 borderRadius: 16,
                 padding: "16px",
                 display: "flex",
                 gap: 14,
-                cursor: "pointer",
+                cursor: is_discontinued ? "default" : "pointer",
                 border: "1.5px solid #EEF1F5",
                 transition: "box-shadow 0.2s, transform 0.2s",
                 marginBottom: 12,
+                overflow: "hidden",
             }}
             onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 6px 20px rgba(4,44,83,0.1)";
-                e.currentTarget.style.transform = "translateY(-1px)";
+                if (!is_discontinued) {
+                    e.currentTarget.style.boxShadow = "0 6px 20px rgba(4,44,83,0.1)";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                }
             }}
             onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = "none";
                 e.currentTarget.style.transform = "translateY(0)";
             }}
         >
+            {is_discontinued && (
+                <div style={{
+                    position: "absolute", inset: 0, zIndex: 10,
+                    backdropFilter: "blur(1px)",
+                    background: "rgba(255,255,255,0.3)",
+                    borderRadius: 16,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                    <span style={{
+                        fontSize: 12, fontWeight: 700, color: "#fff",
+                        background: "rgba(60,60,60,0.65)",
+                        borderRadius: 99, padding: "6px 14px",
+                    }}>
+                        현재 신규 발급이 불가능한 상품이에요
+                    </span>
+                </div>
+            )}
             <div
                 style={{
                     width: 52,
@@ -312,7 +333,9 @@ export default function ProductSearch() {
         { key: "savings",   label: "🏦 예적금" },
         { key: "insurance", label: "🛡️ 미니보험" },
     ];
-    const tabProducts = products.filter(p => p.product_type === activeTab);
+    const tabProducts = products
+        .filter(p => p.product_type === activeTab)
+        .sort((a, b) => (a.is_discontinued ? 1 : 0) - (b.is_discontinued ? 1 : 0));
 
     const getQuestionText = (q) =>
         typeof q === "string" ? q : q.question || q.text || q.content || "";
