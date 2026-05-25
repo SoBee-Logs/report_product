@@ -143,16 +143,16 @@ def get_transaction_report(user_id: int):
     df['time_label'] = df['payment_time'].apply(classify_time)
     df['week_label'] = df['payment_date'].apply(classify_week)
 
-    # 상위 2개 카테고리
-    top2_categories = (
+    # 상위 3개 카테고리
+    top3_categories = (
         df.groupby('payment_category')['payment_out']
-        .sum().nlargest(2).index.tolist()
+        .sum().nlargest(3).index.tolist()
     )
 
     # 주차별 × 상위 2개 카테고리 집계
-    df_top2 = df[df['payment_category'].isin(top2_categories)]
+    df_top3 = df[df['payment_category'].isin(top3_categories)]
     weekly_pivot = (
-        df_top2.groupby(['week_label', 'payment_category'])['payment_out']
+        df_top3.groupby(['week_label', 'payment_category'])['payment_out']
         .sum().astype(int).unstack(fill_value=0)
     )
 
@@ -161,7 +161,7 @@ def get_transaction_report(user_id: int):
     for week in week_order:
         if week in weekly_pivot.index:
             row = {'week': week}
-            for cat in top2_categories:
+            for cat in top3_categories:
                 row[cat] = int(weekly_pivot.loc[week, cat]) if cat in weekly_pivot.columns else 0
             weekly_price.append(row)
 
@@ -172,6 +172,6 @@ def get_transaction_report(user_id: int):
         "category_price": df.groupby('payment_category')['payment_out'].sum().astype(int).to_dict(),
         "timepattern_price": df.groupby('time_label')['payment_out'].sum().astype(int).to_dict(),
         "weekly_price": weekly_price,
-        "weekly_categories": top2_categories,
+        "weekly_categories": top3_categories,
         "category_colors": CATEGORY_COLORS,
     }

@@ -16,7 +16,6 @@ function RecommendCard({ item, index }) {
       onClick={() => navigate('/product/detail', { state: { item } })}
       className="rounded-2xl border border-gray-100 p-4 shadow-sm flex gap-3 items-center cursor-pointer active:bg-gray-50"
     >
-      {/* 카드/상품 이미지 */}
       <div className="shrink-0 w-12 rounded-lg overflow-hidden shadow-md"
         style={{ height: 76, background: 'linear-gradient(135deg, #1e73be, #0e3f78)' }}
       >
@@ -34,7 +33,6 @@ function RecommendCard({ item, index }) {
         )}
       </div>
 
-      {/* 텍스트 */}
       <div className="flex-1 min-w-0">
         <span className="text-[10px] bg-blue-100 text-[#1e73be] rounded-full px-2 py-0.5 font-semibold">{label}</span>
         <p className="text-sm font-bold text-gray-900 mt-1 truncate">{product_name}</p>
@@ -43,18 +41,15 @@ function RecommendCard({ item, index }) {
         )}
       </div>
 
-      {/* 화살표 */}
       <span className="text-gray-300 text-sm shrink-0">›</span>
     </div>
   )
 }
 
-const CATEGORY_COLORS = {
-  '한식': '#1e73be', '일반대중음식': '#38BDF8', '커피전문점': '#60a5fa',
-  '편의점': '#93c5fd', '결제대행(PG)': '#bfdbfe', '패스트푸드': '#2563eb',
-  '할인점/슈퍼마켓': '#0ea5e9', '약국': '#7dd3fc', '제과점': '#3b82f6',
-  '일식': '#6366f1',
-}
+const CATEGORY_PALETTE = [
+  '#1e73be', '#38BDF8', '#60a5fa', '#93c5fd', '#0ea5e9',
+  '#3b82f6', '#7dd3fc', '#2563eb', '#6366f1', '#bfdbfe',
+]
 
 const TIME_ICONS = {
   '새벽': '🌙', '아침': '🌅', '점심': '☀️', '저녁': '🍽️', '심야': '🌃',
@@ -63,7 +58,6 @@ const TIME_ORDER = ['새벽', '아침', '점심', '저녁', '심야']
 
 const API_BASE = 'http://localhost:8000'
 
-// TODO: 로그인 연동 후 localStorage or 전역상태에서 가져오도록 교체
 const USER_ID = 1
 
 export default function Report() {
@@ -95,16 +89,13 @@ export default function Report() {
           .catch(() => {})
 
         const [lcRes, txRes] = await Promise.allSettled([
-          // ✅ GET /api/lifecycle/{user_id} → 저장된 생애주기 조회
           fetch(`${API_BASE}/api/lifecycle/${USER_ID}`).then(r => r.json()),
-          // ✅ user_id 변수로 동적 처리
           fetch(`${API_BASE}/report/mydata/transaction?user_id=${USER_ID}`).then(r => r.json()),
         ])
         if (lcRes.status === 'fulfilled') setLifecycle(lcRes.value)
         else setLifecycle({ lifecycle_stage: '생애주기 없음', description: '분석 결과를 불러올 수 없어요.' })
         if (txRes.status === 'fulfilled') setTxData(txRes.value)
 
-        // lifecycle + txData 완료 후 순차적으로 상품 추천 호출
         try {
           const recRes = await fetch(`${API_BASE}/report/ai-insight?user_id=1`)
           const recData = await recRes.json()
@@ -121,24 +112,22 @@ export default function Report() {
     fetchAll()
   }, [])
 
-  // category_price 객체 → 차트 배열
   const categoryList = txData
     ? (() => {
         const total = Object.values(txData.category_price).reduce((a, b) => a + b, 0)
         return Object.entries(txData.category_price)
           .sort((a, b) => b[1] - a[1])
-          .map(([name, amount]) => ({
+          .map(([name, amount], i) => ({
             name,
             amount,
             value: Math.round((amount / total) * 100),
-            color: CATEGORY_COLORS[name] ?? '#94a3b8',
+            color: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length],
           }))
       })()
     : []
 
   const top3 = categoryList.slice(0, 3)
 
-  // timepattern_price 객체 → 차트 배열 (데이터 없으면 0%로 표시)
   const timeList = txData
     ? (() => {
         const total = Object.values(txData.timepattern_price).reduce((a, b) => a + b, 0)
@@ -235,10 +224,18 @@ export default function Report() {
         {error && <p className="text-[10px] text-red-300 mt-1">※ 서버 연결 실패</p>}
       </div>
 
-      {/* 카테고리 도넛 차트 */}
+      {/* ✅ 카테고리 도넛 차트 - 자세히보기 추가 */}
       {categoryList.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-500 font-semibold mb-3">🏷️ 카테고리별 소비 내역</p>
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-xs text-gray-500 font-semibold">🏷️ 카테고리별 소비 내역</p>
+            <button
+              onClick={() => navigate('/report/detail', { state: { scrollTo: 'category' } })}
+              className="text-[10px] text-[#1e73be] underline"
+            >
+              자세히 보기 →
+            </button>
+          </div>
           <div className="flex items-center gap-4">
             <PieChart width={120} height={120}>
               <Pie data={categoryList} cx={55} cy={55} innerRadius={32} outerRadius={55} dataKey="value">
@@ -259,21 +256,24 @@ export default function Report() {
         </div>
       )}
 
-      {/* TOP 3 바 차트 */}
+      {/* TOP 3 바 차트 - scrollTo 추가 (카테고리 섹션으로 보냄) */}
       {top3.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
           <div className="flex justify-between items-center mb-3">
             <p className="text-xs text-gray-500 font-semibold">TOP 3 소비 금액</p>
-            <button onClick={() => navigate('/report/detail')} className="text-[10px] text-[#1e73be] underline">
+            <button
+              onClick={() => navigate('/report/detail', { state: { scrollTo: 'category' } })}
+              className="text-[10px] text-[#1e73be] underline"
+            >
               자세히 보기 →
             </button>
           </div>
-          <ResponsiveContainer width="100%" height={90}>
-            <BarChart data={top3} layout="vertical" margin={{ left: 8, right: 16 }}>
+          <ResponsiveContainer width="100%" height={110}>
+            <BarChart data={top3} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
               <XAxis type="number" hide />
-              <YAxis type="category" dataKey="name" width={60} tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} interval={0} />
               <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
-                {top3.map((_, i) => <Cell key={i} fill={['#1e73be', '#38BDF8', '#60a5fa'][i]} />)}
+                {top3.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Bar>
               <Tooltip formatter={(v) => `${v.toLocaleString()}원`} />
             </BarChart>
@@ -281,10 +281,18 @@ export default function Report() {
         </div>
       )}
 
-      {/* 주별 라인 차트 */}
+      {/* ✅ 주별 라인 차트 - 자세히보기 추가 */}
       {txData?.weekly_price?.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-500 font-semibold mb-3">📈 주별 소비 변화 추이</p>
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-xs text-gray-500 font-semibold">📈 주별 소비 변화 추이</p>
+            <button
+              onClick={() => navigate('/report/detail', { state: { scrollTo: 'weekly' } })}
+              className="text-[10px] text-[#1e73be] underline"
+            >
+              자세히 보기 →
+            </button>
+          </div>
           <ResponsiveContainer width="100%" height={100}>
             <LineChart data={txData.weekly_price}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -296,17 +304,20 @@ export default function Report() {
                   key={cat}
                   type="monotone"
                   dataKey={cat}
-                  stroke={['#1e73be', '#38BDF8'][i]}
+                  stroke={CATEGORY_PALETTE[i % CATEGORY_PALETTE.length]}
                   strokeWidth={2}
                   dot={false}
                 />
               ))}
             </LineChart>
           </ResponsiveContainer>
-          <div className="flex gap-3 mt-2 justify-center">
+          <div className="flex gap-3 mt-2 justify-center flex-wrap">
             {txData.weekly_categories.map((cat, i) => (
               <div key={cat} className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full" style={{ background: ['#1e73be', '#38BDF8'][i] }} />
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length] }}
+                />
                 <span className="text-[10px] text-gray-500">{cat}</span>
               </div>
             ))}
@@ -314,10 +325,18 @@ export default function Report() {
         </div>
       )}
 
-      {/* 시간대 패턴 */}
+      {/* ✅ 시간대 패턴 - 자세히보기 추가 */}
       {timeList.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-500 font-semibold mb-3">⏰ 시간대별 소비 패턴</p>
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-xs text-gray-500 font-semibold">⏰ 시간대별 소비 패턴</p>
+            <button
+              onClick={() => navigate('/report/detail', { state: { scrollTo: 'time' } })}
+              className="text-[10px] text-[#1e73be] underline"
+            >
+              자세히 보기 →
+            </button>
+          </div>
           <div className="flex justify-between">
             {timeList.map((t) => (
               <div key={t.label} className="flex flex-col items-center gap-1">
