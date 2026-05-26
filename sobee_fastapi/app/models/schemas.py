@@ -33,6 +33,7 @@ class LifecycleResponse(BaseModel):
 # 내부 파이프라인
 class SyncRequest(BaseModel):
     user_id: int
+    days: Optional[int] = None  # None → daily default (3일), 30 → 최초 가입 시
 
 class SyncResponse(BaseModel):
     message: str
@@ -45,8 +46,21 @@ class MappingResponse(BaseModel):
 
 class PersonaGenerateRequest(BaseModel):
     user_id: int
-    start_date: str  # YYYY-MM-DD
-    end_date: str    # YYYY-MM-DD
+    start_date: Optional[str] = None  # 없으면 지난주 월~일 자동 적용
+    end_date: Optional[str] = None
+
+class RegisterAccountRequest(BaseModel):
+    user_id: int
+    business_type: str   # "BK" | "CD"
+    org_code: str        # 기관코드 e.g. "0020"
+    login_id: str
+    login_pw: str
+
+class RegisterAccountResponse(BaseModel):
+    user_id: int
+    business_type: str
+    org_code: str
+    message: str
 
 class DiaryGenerateRequest(BaseModel):
     user_id: int
