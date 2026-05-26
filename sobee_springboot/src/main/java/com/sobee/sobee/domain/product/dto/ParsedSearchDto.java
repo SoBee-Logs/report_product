@@ -8,6 +8,7 @@ import java.util.List;
 @NoArgsConstructor
 public class ParsedSearchDto {
     private List<String> product_types;
+    private String company;
     private String category;
     private List<String> keywords;
     private String ai_text;

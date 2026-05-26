@@ -32,3 +32,7 @@ fss:
     url: https://finlife.fss.or.kr/finlifeapi
     key: ${FINANCE_API_KEY}
 
+fastapi:
+  base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
+  internal-secret: ${INTERNAL_SECRET_KEY:5b2ffcab30e9e662b4ff4b9e184506ef22d64647eda0fb122bb9bf1b4444bdcb}
+
