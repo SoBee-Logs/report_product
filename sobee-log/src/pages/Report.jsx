@@ -3,8 +3,52 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import {
   PieChart, Pie, Cell, Tooltip,
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
-  LineChart, Line, CartesianGrid, LabelList
+  LineChart, Line, CartesianGrid, LabelList, ReferenceLine
 } from 'recharts'
+
+function CategoryDonut({ categoryList }) {
+  const [selectedCat, setSelectedCat] = useState(null)
+  return (
+    <div className="flex justify-center">
+      <div className="relative" style={{ width: 240, height: 240 }}>
+        <PieChart width={240} height={240}>
+          <Pie
+            data={categoryList}
+            cx={115} cy={115}
+            innerRadius={72} outerRadius={110}
+            dataKey="value"
+            onClick={(data) => setSelectedCat(prev => prev?.name === data.name ? null : data)}
+            style={{ cursor: 'pointer' }}
+          >
+            {categoryList.map((entry, i) => (
+              <Cell
+                key={i}
+                fill={entry.color}
+                opacity={selectedCat && selectedCat.name !== entry.name ? 0.4 : 1}
+                stroke={selectedCat?.name === entry.name ? '#042C53' : 'none'}
+                strokeWidth={selectedCat?.name === entry.name ? 2 : 0}
+              />
+            ))}
+          </Pie>
+        </PieChart>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {selectedCat ? (
+            <>
+              <span className="w-3 h-3 rounded-full mb-1" style={{ background: selectedCat.color }} />
+              <p className="text-sm font-bold text-gray-900 text-center leading-tight px-4">{selectedCat.name}</p>
+              <p className="text-base font-extrabold mt-1" style={{ color: selectedCat.color }}>
+                {selectedCat.amount.toLocaleString()}원
+              </p>
+              <p className="text-xs text-gray-400">{selectedCat.value}%</p>
+            </>
+          ) : (
+            <p className="text-[11px] text-gray-300">영역을 눌러보세요</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function RecommendCard({ item, index }) {
   const navigate = useNavigate()
@@ -53,6 +97,9 @@ const CATEGORY_PALETTE = [
 
 const TIME_ICONS = {
   '새벽': '🌙', '아침': '🌅', '점심': '☀️', '저녁': '🍽️', '심야': '🌃',
+}
+const TIME_RANGES = {
+  '새벽': '0~6시', '아침': '6~11시', '점심': '11~14시', '저녁': '14~20시', '심야': '20~24시',
 }
 const TIME_ORDER = ['새벽', '아침', '점심', '저녁', '심야']
 
@@ -145,9 +192,90 @@ export default function Report() {
     : null
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-3">
-      <span className="animate-spin text-2xl">⏳</span>
-      <p className="text-sm text-gray-400">리포트 불러오는 중...</p>
+    <div className="flex flex-col gap-4 pt-4 px-4 pb-24 animate-pulse">
+      {/* 페르소나 배너 스켈레톤 */}
+      <div className="rounded-2xl bg-gray-200 p-4 flex items-center gap-3 h-20">
+        <div className="w-14 h-14 rounded-full bg-gray-300 shrink-0" />
+        <div className="flex-1 flex flex-col gap-2">
+          <div className="h-2.5 bg-gray-300 rounded-full w-1/3" />
+          <div className="h-4 bg-gray-300 rounded-full w-1/2" />
+          <div className="h-2.5 bg-gray-300 rounded-full w-2/3" />
+        </div>
+      </div>
+
+      {/* 총 소비 스켈레톤 */}
+      <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <div className="h-2.5 bg-gray-200 rounded-full w-1/4 mb-3" />
+        <div className="h-8 bg-gray-200 rounded-full w-2/5 mb-4" />
+        <div className="flex gap-3">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="flex-1 rounded-xl bg-gray-100 p-3 flex flex-col gap-1.5">
+              <div className="h-2 bg-gray-200 rounded-full w-2/3 mx-auto" />
+              <div className="h-3.5 bg-gray-200 rounded-full w-1/2 mx-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* AI 추천 스켈레톤 */}
+      <div className="flex flex-col gap-2">
+        <div className="h-2.5 bg-gray-200 rounded-full w-1/4" />
+        {[0, 1].map(i => (
+          <div key={i} className="rounded-2xl border border-gray-100 p-4 shadow-sm flex gap-3 items-center">
+            <div className="w-12 rounded-lg bg-gray-200 shrink-0" style={{ height: 76 }} />
+            <div className="flex-1 flex flex-col gap-2">
+              <div className="h-2.5 bg-gray-200 rounded-full w-1/4" />
+              <div className="h-4 bg-gray-200 rounded-full w-3/4" />
+              <div className="h-2.5 bg-gray-200 rounded-full w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 생애주기 스켈레톤 */}
+      <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 flex flex-col gap-2">
+        <div className="h-2.5 bg-blue-200 rounded-full w-1/3" />
+        <div className="h-5 bg-blue-200 rounded-full w-1/2" />
+        <div className="h-2.5 bg-blue-200 rounded-full w-full" />
+        <div className="h-2.5 bg-blue-200 rounded-full w-2/3" />
+      </div>
+
+      {/* 카테고리 차트 스켈레톤 */}
+      <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <div className="h-2.5 bg-gray-200 rounded-full w-1/3 mb-4" />
+        <div className="flex items-center gap-4">
+          <div className="w-28 h-28 rounded-full bg-gray-200 shrink-0" />
+          <div className="flex-1 flex flex-col gap-2">
+            {[0, 1, 2, 3, 4].map(i => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-gray-200 shrink-0" />
+                <div className="h-2.5 bg-gray-200 rounded-full flex-1" />
+                <div className="h-2.5 bg-gray-200 rounded-full w-6" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 주별 차트 스켈레톤 */}
+      <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <div className="h-2.5 bg-gray-200 rounded-full w-1/3 mb-4" />
+        <div className="h-24 bg-gray-100 rounded-xl" />
+      </div>
+
+      {/* 시간대 스켈레톤 */}
+      <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <div className="h-2.5 bg-gray-200 rounded-full w-1/3 mb-4" />
+        <div className="flex justify-between">
+          {[0, 1, 2, 3, 4].map(i => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <div className="w-10 h-10 rounded-full bg-gray-200" />
+              <div className="h-2 bg-gray-200 rounded-full w-7" />
+              <div className="h-2 bg-gray-200 rounded-full w-5" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 
@@ -163,7 +291,6 @@ export default function Report() {
           }
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-blue-100 mb-0.5">나의 소비 페르소나</p>
           <p className="font-bold text-base leading-tight">{persona?.avatarName ?? '분석 중...'}</p>
           <p className="text-xs text-blue-100 mt-0.5 truncate">{persona?.avatarExplane ?? ''}</p>
         </div>
@@ -223,7 +350,7 @@ export default function Report() {
         {error && <p className="text-[10px] text-red-300 mt-1">※ 서버 연결 실패</p>}
       </div>
 
-      {/* 카테고리 도넛 + TOP3 통합 카드 */}
+      {/* 카테고리 도넛 */}
       {categoryList.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
           <div className="flex justify-between items-center mb-3">
@@ -236,26 +363,10 @@ export default function Report() {
             </button>
           </div>
 
-          {/* 상단: 도넛 + 비중 % 리스트 */}
-          <div className="flex items-center gap-4">
-            <PieChart width={120} height={120}>
-              <Pie data={categoryList} cx={55} cy={55} innerRadius={32} outerRadius={55} dataKey="value">
-                {categoryList.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-              <Tooltip formatter={(v) => `${v}%`} />
-            </PieChart>
-            <div className="flex flex-col gap-1.5 flex-1">
-              {categoryList.slice(0, 5).map((c) => (
-                <div key={c.name} className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: c.color }} />
-                  <span className="text-xs text-gray-600 flex-1">{c.name}</span>
-                  <span className="text-xs font-semibold text-gray-800">{c.value}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* 도넛 차트 중앙 배치 */}
+          <CategoryDonut categoryList={categoryList} />
 
-          {/* 구분선 + 하단: TOP3 막대 (금액) */}
+          {/* 구분선 + TOP3 막대 (금액) */}
           {top3.length > 0 && (
             <>
               <div className="border-t border-gray-100 my-3" />
@@ -285,7 +396,7 @@ export default function Report() {
         </div>
       )}
 
-      {/* 주별 라인 차트 */}
+      {/* 주별 세로 막대 차트 */}
       {txData?.weekly_price?.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
           <div className="flex justify-between items-center mb-3">
@@ -297,35 +408,40 @@ export default function Report() {
               더보기 →
             </button>
           </div>
-          <ResponsiveContainer width="100%" height={100}>
-            <LineChart data={txData.weekly_price}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="week" tick={{ fontSize: 10 }} />
-              <YAxis hide />
-              <Tooltip formatter={(v) => `${v.toLocaleString()}원`} />
-              {txData.weekly_categories.map((cat, i) => (
-                <Line
-                  key={cat}
-                  type="monotone"
-                  dataKey={cat}
-                  stroke={CATEGORY_PALETTE[i % CATEGORY_PALETTE.length]}
-                  strokeWidth={2}
-                  dot={false}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-          <div className="flex gap-3 mt-2 justify-center flex-wrap">
-            {txData.weekly_categories.map((cat, i) => (
-              <div key={cat} className="flex items-center gap-1">
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length] }}
-                />
-                <span className="text-[10px] text-gray-500">{cat}</span>
-              </div>
-            ))}
-          </div>
+          {(() => {
+            const weeklyTotals = txData.weekly_price.map(w => ({
+              week: w.week,
+              total: Object.entries(w)
+                .filter(([k]) => k !== 'week')
+                .reduce((sum, [, v]) => sum + v, 0),
+            }))
+            const avg = Math.round(weeklyTotals.reduce((s, w) => s + w.total, 0) / weeklyTotals.length)
+            return (
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={weeklyTotals} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <XAxis dataKey="week" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <Tooltip formatter={(v) => `${v.toLocaleString()}원`} />
+                  <ReferenceLine
+                    y={avg}
+                    stroke="#f97316"
+                    strokeDasharray="4 3"
+                    strokeWidth={1.5}
+                    label={{ value: `평균 ${Math.round(avg / 10000)}만`, position: 'insideTopRight', fontSize: 10, fill: '#f97316', fontWeight: 600 }}
+                  />
+                  <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="#1e73be" barSize={28}>
+                    <LabelList
+                      dataKey="total"
+                      position="top"
+                      formatter={(v) => v > 0 ? `${Math.round(v / 10000)}만` : ''}
+                      style={{ fontSize: 10, fill: '#8494A8', fontWeight: 600 }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )
+          })()}
         </div>
       )}
 
@@ -341,17 +457,36 @@ export default function Report() {
               더보기 →
             </button>
           </div>
-          <div className="flex justify-between">
-            {timeList.map((t) => (
-              <div key={t.label} className="flex flex-col items-center gap-1">
-                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-lg">{t.icon}</div>
-                <p className="text-[10px] font-bold text-gray-700">{t.label}</p>
-                <p className="text-[10px] text-[#1e73be] font-semibold">{t.pct}%</p>
-              </div>
-            ))}
-          </div>
+          <ResponsiveContainer width="100%" height={140}>
+            <LineChart data={timeList} margin={{ top: 8, right: 20, left: 20, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={({ x, y, payload }) => (
+                  <text x={x} y={y + 12} textAnchor="middle" fontSize={11} fill="#6B7280">
+                    <tspan x={x} dy="0">{TIME_ICONS[payload.value]} {payload.value}</tspan>
+                    <tspan x={x} dy="14" fontSize={9} fill="#9CA3AF">{TIME_RANGES[payload.value]}</tspan>
+                  </text>
+                )}
+                axisLine={false}
+                tickLine={false}
+                interval={0}
+                height={40}
+              />
+              <YAxis hide />
+              <Tooltip formatter={(v) => [`비중 ${v}%`, '']} labelFormatter={(l) => `${TIME_ICONS[l]} ${l}`} />
+              <Line
+                type="monotone"
+                dataKey="pct"
+                stroke="#1e73be"
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: '#1e73be', strokeWidth: 0 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
           {peakTime && (
-            <p className="text-[11px] text-center text-gray-400 mt-3">
+            <p className="text-[11px] text-center text-gray-400 mt-2">
               {peakTime.icon} {peakTime.label} 시간대 소비가 가장 활발해요
             </p>
           )}

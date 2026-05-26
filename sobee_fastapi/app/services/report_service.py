@@ -24,6 +24,8 @@ CATEGORY_MAP = {
     '한식':                               '식사',
     '일식':                               '식사',
     '패스트푸드':                           '식사',
+    '서양음식':                             '식사',
+    '서양전문음식':                          '식사',
 
     # 편의점
     '편의점':                              '편의점',
@@ -79,9 +81,9 @@ CATEGORY_COLORS = {
 
 def get_transaction_report(user_id: int):
     now = datetime.now()
-    first_day = now.replace(day=1).strftime("%Y-%m-%d")
+    first_day = now.replace(day=1).strftime("%Y%m%d")
     last_day = (now.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-    last_day = last_day.strftime("%Y-%m-%d")
+    last_day = last_day.strftime("%Y%m%d")
 
     df = pd.read_sql(text("""
         SELECT payment_category, payment_time, payment_date, payment_out
@@ -132,7 +134,9 @@ def get_transaction_report(user_id: int):
             day = d.day
         else:
             try:
-                day = int(str(d)[8:10])
+                s = str(d)
+                # YYYYMMDD(8자) 또는 YYYY-MM-DD(10자) 모두 처리
+                day = int(s[6:8]) if len(s) == 8 else int(s[8:10])
             except (ValueError, TypeError):
                 return '기타'
         if day <= 7:    return '1주'

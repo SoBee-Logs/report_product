@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>리포트 UI 개선안</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap');
+    * { font-family: 'Noto Sans KR', sans-serif; box-sizing: border-box; }
+
+    body { background: #f0f4f8; }
+
+    .phone-frame {
+      width: 390px;
+      min-height: 844px;
+      background: white;
+      border-radius: 48px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.25), inset 0 0 0 2px #e2e8f0;
+      overflow: hidden;
+      position: relative;
+    }
+    .phone-screen {
+      height: 844px;
+      overflow-y: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .phone-screen::-webkit-scrollbar { display: none; }
+
+    /* 그라데이션 애니메이션 */
+    @keyframes shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .shimmer {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    /* 펄스 애니메이션 */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .pulse { animation: pulse 2s ease-in-out infinite; }
+
+    /* 바 애니메이션 */
+    @keyframes barGrow {
+      from { width: 0; }
+    }
+    .bar-animate { animation: barGrow 0.8s ease-out forwards; }
+
+    /* 점수 링 */
+    .score-ring {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: conic-gradient(rgba(255,255,255,0.9) 0% 75%, rgba(255,255,255,0.2) 75% 100%);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .score-ring::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      background: rgba(30,115,190,0.8);
+    }
+    .score-ring span { position: relative; z-index: 1; font-size: 12px; font-weight: 800; color: white; }
+
+    /* 탭 언더라인 */
+    .tab-active {
+      color: #1e73be;
+      border-bottom: 2px solid #1e73be;
+    }
+
+    /* 호버 카드 */
+    .hover-card {
+      transition: transform 0.15s, box-shadow 0.15s;
+      cursor: pointer;
+    }
+    .hover-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(30,115,190,0.12);
+    }
+    .hover-card:active {
+      transform: translateY(0);
+    }
+
+    /* 뱃지 글로우 */
+    .badge-glow {
+      box-shadow: 0 0 8px rgba(99,102,241,0.5);
+    }
+
+    /* 히트맵 바 */
+    .heatmap-bar {
+      height: 10px;
+      border-radius: 9999px;
+      transition: width 1s ease-out;
+    }
+
+    /* 섹션 레이블 */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b7280;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* 태그 칩 */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    /* 스크롤 섹션 탭 */
+    .tab-scroll {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .tab-scroll::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="min-h-screen py-12 px-4" style="background: linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%);">
+
+  <!-- 헤더 타이틀 -->
+  <div class="text-center mb-8">
+    <h1 class="text-2xl font-extrabold text-gray-800">리포트 화면 UI/UX 개선안</h1>
+    <p class="text-sm text-gray-500 mt-1">좌: 현재 / 우: 개선안 (스크롤하여 전체 확인)</p>
+  </div>
+
+  <!-- 2단 비교 레이아웃 -->
+  <div class="flex gap-8 justify-center items-start flex-wrap">
+
+    <!-- ===== 현재 화면 ===== -->
+    <div class="flex flex-col items-center gap-3">
+      <div class="text-sm font-bold text-gray-500 bg-white px-4 py-1 rounded-full shadow">현재 화면</div>
+      <div class="phone-frame">
+        <div class="phone-screen bg-gray-50">
+
+          <!-- 상단 헤더 (현재) -->
+          <div class="bg-white px-4 py-3 flex items-center gap-2 border-b border-gray-100">
+            <span class="text-base font-bold text-gray-900">리포트</span>
+          </div>
+
+          <div class="flex flex-col gap-4 pt-4 px-4 pb-24">
+
+            <!-- 페르소나 배너 (현재) -->
+            <div class="rounded-2xl p-4 flex items-center gap-3" style="background:#1e73be;">
+              <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl shrink-0" style="background:rgba(255,255,255,0.2);">🐝</div>
+              <div>
+                <p class="text-xs mb-0.5" style="color:rgba(255,255,255,0.7);">나의 소비 페르소나</p>
+                <p class="font-bold text-white text-base">절약형 직장인 🐝</p>
+                <p class="text-xs truncate" style="color:rgba(255,255,255,0.7);">꼼꼼하게 따져보고 소비해요</p>
+              </div>
+            </div>
+
+            <!-- 소비 요약 (현재) -->
+            <div class="rounded-2xl border border-gray-100 p-4 bg-white shadow-sm">
+              <p class="text-xs text-gray-400 mb-1">📊 소비 리포트</p>
+              <p class="text-2xl font-extrabold text-gray-900">1,250,000원</p>
+              <div class="flex gap-3 mt-3">
+                <div class="flex-1 rounded-xl bg-gray-50 p-2 text-center">
+                  <p class="text-[10px] text-gray-400">결제 건수</p>
+                  <p class="text-sm font-bold text-gray-800">23건</p>
+                </div>
+                <div class="flex-1 rounded-xl bg-gray-50 p-2 text-center">
+                  <p class="text-[10px] text-gray-400">결제 일수</p>
+                  <p class="text-sm font-bold text-gray-800">15일</p>
+                </div>
+                <div class="flex-1 rounded-xl bg-gray-50 p-2 text-center">
+                  <p class="text-[10px] text-gray-400">결제 시간</p>
+                  <p class="text-sm font-bold text-gray-800">☀️점심</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- AI 추천 (현재) -->
+            <div class="flex flex-col gap-2">
+              <p class="text-xs text-gray-500 font-semibold">🤖 AI 상품 추천</p>
+              <p class="text-[11px] text-gray-400 px-1">소비 패턴을 분석해 맞춤 상품을 추천드려요.</p>
+              <div class="rounded-2xl border border-gray-100 p-4 bg-white shadow-sm flex gap-3 items-center">
+                <div class="w-12 rounded-lg overflow-hidden shrink-0" style="height:76px;background:linear-gradient(135deg,#1e73be,#0e3f78);">
+                  <div class="w-full h-full flex items-center justify-center text-2xl">💳</div>
+                </div>
+                <div class="flex-1">
+                  <span class="text-[10px] rounded-full px-2 py-0.5 font-semibold" style="background:#dbeafe;color:#1e73be;">💳 추천 카드</span>
+                  <p class="text-sm font-bold text-gray-900 mt-1">신한 Deep Dream 카드</p>
+                  <p class="text-[11px] mt-0.5" style="color:#1e73be;">식사·카페 혜택이 풍부한 카드</p>
+                </div>
+                <span class="text-gray-300 text-sm">›</span>
+              </div>
+              <div class="rounded-2xl border border-gray-100 p-4 bg-white shadow-sm flex gap-3 items-center">
+                <div class="w-12 rounded-lg overflow-hidden shrink-0" style="height:76px;background:linear-gradient(135deg,#1e73be,#0e3f78);">
+                  <div class="w-full h-full flex items-center justify-center text-2xl">🏦</div>
+                </div>
+                <div class="flex-1">
+                  <span class="text-[10px] rounded-full px-2 py-0.5 font-semibold" style="background:#dbeafe;color:#1e73be;">🏦 추천 예적금</span>
+                  <p class="text-sm font-bold text-gray-900 mt-1">카카오 정기적금</p>
+                  <p class="text-[11px] mt-0.5" style="color:#1e73be;">높은 금리의 자유 적금</p>
+                </div>
+                <span class="text-gray-300 text-sm">›</span>
+              </div>
+            </div>
+
+            <!-- 카테고리 (현재) -->
+            <div class="rounded-2xl border border-gray-100 p-4 bg-white shadow-sm">
+              <div class="flex justify-between items-center mb-3">
+                <p class="text-xs text-gray-500 font-semibold">🏷️ 카테고리별 소비 내역</p>
+                <button class="text-[10px] underline" style="color:#1e73be;">더보기 →</button>
+              </div>
+              <div class="flex items-center gap-4">
+                <canvas id="donutOld" width="100" height="100"></canvas>
+                <div class="flex flex-col gap-1.5 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:#1e73be"></span>
+                    <span class="text-xs text-gray-600 flex-1">식사</span>
+                    <span class="text-xs font-semibold text-gray-800">38%</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:#38BDF8"></span>
+                    <span class="text-xs text-gray-600 flex-1">카페/음료</span>
+                    <span class="text-xs font-semibold text-gray-800">22%</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:#60a5fa"></span>
+                    <span class="text-xs text-gray-600 flex-1">교통</span>
+                    <span class="text-xs font-semibold text-gray-800">15%</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:#93c5fd"></span>
+                    <span class="text-xs text-gray-600 flex-1">쇼핑</span>
+                    <span class="text-xs font-semibold text-gray-800">12%</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:#0ea5e9"></span>
+                    <span class="text-xs text-gray-600 flex-1">편의점</span>
+                    <span class="text-xs font-semibold text-gray-800">8%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 시간대 (현재) -->
+            <div class="rounded-2xl border border-gray-100 p-4 bg-white shadow-sm">
+              <p class="text-xs text-gray-500 font-semibold mb-3">⏰ 시간대별 소비 패턴</p>
+              <div class="flex justify-between">
+                <div class="flex flex-col items-center gap-1">
+                  <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg" style="background:#eff6ff;">🌙</div>
+                  <p class="text-[10px] font-bold text-gray-700">새벽</p>
+                  <p class="text-[10px] font-semibold" style="color:#1e73be;">5%</p>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                  <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg" style="background:#eff6ff;">🌅</div>
+                  <p class="text-[10px] font-bold text-gray-700">아침</p>
+                  <p class="text-[10px] font-semibold" style="color:#1e73be;">18%</p>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                  <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg" style="background:#eff6ff;">☀️</div>
+                  <p class="text-[10px] font-bold text-gray-700">점심</p>
+                  <p class="text-[10px] font-semibold" style="color:#1e73be;">42%</p>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                  <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg" style="background:#eff6ff;">🍽️</div>
+                  <p class="text-[10px] font-bold text-gray-700">저녁</p>
+                  <p class="text-[10px] font-semibold" style="color:#1e73be;">28%</p>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                  <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg" style="background:#eff6ff;">🌃</div>
+                  <p class="text-[10px] font-bold text-gray-700">심야</p>
+                  <p class="text-[10px] font-semibold" style="color:#1e73be;">7%</p>
+                </div>
+              </div>
+              <p class="text-[11px] text-center text-gray-400 mt-3">☀️ 점심 시간대 소비가 가장 활발해요</p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 개선 화면 ===== -->
+    <div class="flex flex-col items-center gap-3">
+      <div class="text-sm font-bold text-white px-4 py-1 rounded-full shadow" style="background:linear-gradient(90deg,#1e73be,#6366f1);">✨ 개선 화면</div>
+      <div class="phone-frame">
+        <div class="phone-screen" style="background:#f8fafc;">
+
+          <!-- 상단 헤더 (개선) -->
+          <div class="bg-white px-4 pt-3 pb-0 flex items-center justify-between border-b border-gray-100">
+            <span class="text-base font-bold text-gray-900">5월 리포트</span>
+            <span class="text-xs px-2 py-1 rounded-full font-semibold" style="background:#f0fdf4;color:#16a34a;">✓ 분석 완료</span>
+          </div>
+
+          <!-- 섹션 탭 네비 (개선) -->
+          <div class="bg-white tab-scroll flex border-b border-gray-100 px-4">
+            <button class="text-xs py-2.5 px-3 font-semibold tab-active whitespace-nowrap">요약</button>
+            <button class="text-xs py-2.5 px-3 font-semibold text-gray-400 whitespace-nowrap">카테고리</button>
+            <button class="text-xs py-2.5 px-3 font-semibold text-gray-400 whitespace-nowrap">AI 추천</button>
+            <button class="text-xs py-2.5 px-3 font-semibold text-gray-400 whitespace-nowrap">패턴</button>
+          </div>
+
+          <div class="flex flex-col gap-4 pt-4 px-4 pb-24">
+
+            <!-- ① 페르소나 배너 (개선) - 그라데이션 + 점수 -->
+            <div class="rounded-2xl p-4 relative overflow-hidden" style="background:linear-gradient(135deg,#1e73be 0%,#6366f1 100%);">
+              <!-- 배경 장식 원 -->
+              <div class="absolute -top-6 -right-6 w-24 h-24 rounded-full" style="background:rgba(255,255,255,0.08);"></div>
+              <div class="absolute -bottom-4 -left-4 w-16 h-16 rounded-full" style="background:rgba(255,255,255,0.06);"></div>
+
+              <div class="flex items-start gap-3 relative">
+                <!-- 아바타 + 레벨 뱃지 -->
+                <div class="relative shrink-0">
+                  <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl" style="background:rgba(255,255,255,0.2);">🐝</div>
+                  <span class="absolute -bottom-1 -right-1 text-[9px] font-black px-1.5 py-0.5 rounded-full badge-glow" style="background:#fbbf24;color:#1e3a8a;">Lv.3</span>
+                </div>
+
+                <!-- 텍스트 -->
+                <div class="flex-1 min-w-0">
+                  <p class="text-[10px] mb-0.5" style="color:rgba(255,255,255,0.7);">나의 소비 페르소나</p>
+                  <p class="font-extrabold text-white text-base leading-tight">절약형 직장인 🐝</p>
+                  <p class="text-xs mt-0.5 leading-relaxed" style="color:rgba(255,255,255,0.8);">꼼꼼하게 따져보고 소비해요</p>
+                </div>
+
+                <!-- 점수 링 -->
+                <div class="shrink-0 flex flex-col items-center gap-1">
+                  <div class="score-ring">
+                    <span>75</span>
+                  </div>
+                  <p class="text-[9px] font-semibold" style="color:rgba(255,255,255,0.7);">소비점수</p>
+                </div>
+              </div>
+
+              <!-- 점수 바 -->
+              <div class="mt-3">
+                <div class="flex justify-between mb-1">
+                  <span class="text-[9px]" style="color:rgba(255,255,255,0.6);">이달 소비 건강도</span>
+                  <span class="text-[9px] font-bold" style="color:rgba(255,255,255,0.9);">75 / 100</span>
+                </div>
+                <div class="w-full h-1.5 rounded-full" style="background:rgba(255,255,255,0.2);">
+                  <div class="h-1.5 rounded-full" style="width:75%;background:rgba(255,255,255,0.85);"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ② 소비 요약 (개선) - 전월 비교 + 인사이트 -->
+            <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div class="flex items-center justify-between mb-1">
+                <p class="section-label">이번 달 지출</p>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background:#f0fdf4;color:#16a34a;">▼12% 지난달 대비</span>
+              </div>
+
+              <p class="text-2xl font-extrabold text-gray-900 mt-1">1,250,000원</p>
+              <p class="text-xs text-gray-400">지난달 1,424,000원 → 174,000원 절약</p>
+
+              <div class="flex gap-2 mt-3">
+                <div class="flex-1 rounded-xl p-2.5 text-center" style="background:#f0f9ff;">
+                  <p class="text-[10px] text-gray-400 mb-0.5">결제 건수</p>
+                  <p class="text-sm font-extrabold" style="color:#0284c7;">23건</p>
+                </div>
+                <div class="flex-1 rounded-xl p-2.5 text-center" style="background:#faf5ff;">
+                  <p class="text-[10px] text-gray-400 mb-0.5">결제 일수</p>
+                  <p class="text-sm font-extrabold" style="color:#7c3aed;">15일</p>
+                </div>
+                <div class="flex-1 rounded-xl p-2.5 text-center" style="background:#fff7ed;">
+                  <p class="text-[10px] text-gray-400 mb-0.5">피크 시간</p>
+                  <p class="text-sm font-extrabold" style="color:#ea580c;">☀️ 점심</p>
+                </div>
+              </div>
+
+              <!-- 인사이트 칩 -->
+              <div class="mt-3 flex gap-2 flex-wrap">
+                <span class="chip" style="background:#f0fdf4;color:#16a34a;">💡 지출 줄이고 있어요</span>
+                <span class="chip" style="background:#eff6ff;color:#1e73be;">🏅 이달 절약 챔피언</span>
+              </div>
+            </div>
+
+            <!-- ③ AI 추천 (개선) - 이유 태그 + 매칭 근거 -->
+            <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div class="flex items-center justify-between mb-1">
+                <p class="section-label">AI 맞춤 추천</p>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background:#eff6ff;color:#1e73be;">2개 추천</span>
+              </div>
+
+              <!-- 추천 근거 문구 -->
+              <div class="flex items-center gap-1.5 mb-3 p-2 rounded-xl" style="background:#f8fafc;">
+                <span class="text-xs">🤖</span>
+                <p class="text-[11px] text-gray-500 leading-tight">"<b>식사·카페</b> 소비 패턴 기반으로 선별했어요"</p>
+              </div>
+
+              <!-- 카드 추천 (개선) -->
+              <div class="hover-card rounded-xl border border-gray-100 p-3 mb-2 flex gap-3 items-center">
+                <div class="w-11 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center" style="background:linear-gradient(135deg,#1e73be,#6366f1);">
+                  <span class="text-xl">💳</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex gap-1 mb-1 flex-wrap">
+                    <span class="chip" style="background:#eff6ff;color:#1e73be;">💳 카드</span>
+                    <span class="chip" style="background:#fff7ed;color:#ea580c;">🍽️ 식사혜택</span>
+                    <span class="chip" style="background:#f0fdf4;color:#16a34a;">☕ 카페혜택</span>
+                  </div>
+                  <p class="text-sm font-bold text-gray-900 truncate">신한 Deep Dream 카드</p>
+                  <p class="text-xs font-semibold mt-0.5" style="color:#1e73be;">★ 식사·카페 5% 적립</p>
+                </div>
+                <span class="text-gray-300 text-lg shrink-0">›</span>
+              </div>
+
+              <!-- 예적금 추천 (개선) -->
+              <div class="hover-card rounded-xl border border-gray-100 p-3 flex gap-3 items-center">
+                <div class="w-11 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center" style="background:linear-gradient(135deg,#0284c7,#0ea5e9);">
+                  <span class="text-xl">🏦</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex gap-1 mb-1 flex-wrap">
+                    <span class="chip" style="background:#f0f9ff;color:#0284c7;">🏦 예적금</span>
+                    <span class="chip" style="background:#faf5ff;color:#7c3aed;">📈 고금리</span>
+                  </div>
+                  <p class="text-sm font-bold text-gray-900 truncate">카카오 정기적금</p>
+                  <p class="text-xs font-semibold mt-0.5" style="color:#0284c7;">★ 연 3.5% 우대금리</p>
+                </div>
+                <span class="text-gray-300 text-lg shrink-0">›</span>
+              </div>
+            </div>
+
+            <!-- ④ 카테고리 (개선) - 순위형 바 + 탭 -->
+            <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <p class="section-label">카테고리 소비</p>
+                <button class="text-[10px] font-semibold" style="color:#1e73be;">전체보기 →</button>
+              </div>
+
+              <!-- 탭 -->
+              <div class="flex gap-0 mb-4 rounded-xl overflow-hidden border border-gray-100">
+                <button id="tabPct" onclick="switchCatTab('pct')" class="flex-1 py-1.5 text-xs font-semibold transition-all" style="background:#1e73be;color:white;">비중 %</button>
+                <button id="tabAmt" onclick="switchCatTab('amt')" class="flex-1 py-1.5 text-xs font-semibold text-gray-400 transition-all">금액 순위</button>
+              </div>
+
+              <!-- 비중 % 뷰 -->
+              <div id="catPctView" class="flex flex-col gap-3">
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-sm">🍽️</span>
+                      <span class="text-sm font-extrabold text-gray-900">1위 식사</span>
+                    </div>
+                    <span class="text-sm font-extrabold" style="color:#1e73be;">38%</span>
+                  </div>
+                  <div class="w-full h-3 rounded-full" style="background:#f1f5f9;">
+                    <div class="h-3 rounded-full bar-animate" style="width:100%;background:linear-gradient(90deg,#1e73be,#6366f1);"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-sm">☕</span>
+                      <span class="text-xs font-semibold text-gray-700">2위 카페/음료</span>
+                    </div>
+                    <span class="text-xs font-semibold text-gray-600">22%</span>
+                  </div>
+                  <div class="w-full h-2.5 rounded-full" style="background:#f1f5f9;">
+                    <div class="h-2.5 rounded-full bar-animate" style="width:58%;background:#38BDF8;"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-sm">🚌</span>
+                      <span class="text-xs font-semibold text-gray-700">3위 교통</span>
+                    </div>
+                    <span class="text-xs font-semibold text-gray-600">15%</span>
+                  </div>
+                  <div class="w-full h-2.5 rounded-full" style="background:#f1f5f9;">
+                    <div class="h-2.5 rounded-full bar-animate" style="width:40%;background:#60a5fa;"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-sm">🛍️</span>
+                      <span class="text-xs font-semibold text-gray-700">4위 쇼핑</span>
+                    </div>
+                    <span class="text-xs font-semibold text-gray-600">12%</span>
+                  </div>
+                  <div class="w-full h-2.5 rounded-full" style="background:#f1f5f9;">
+                    <div class="h-2.5 rounded-full bar-animate" style="width:32%;background:#93c5fd;"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-sm">🏪</span>
+                      <span class="text-xs font-semibold text-gray-700">5위 편의점</span>
+                    </div>
+                    <span class="text-xs font-semibold text-gray-600">8%</span>
+                  </div>
+                  <div class="w-full h-2.5 rounded-full" style="background:#f1f5f9;">
+                    <div class="h-2.5 rounded-full bar-animate" style="width:21%;background:#bfdbfe;"></div>
+                  </div>
+                </div>
+                <p class="text-[10px] text-gray-300 text-center">+ 5개 카테고리 더보기 →</p>
+              </div>
+
+              <!-- 금액 순위 뷰 (숨김) -->
+              <div id="catAmtView" class="flex flex-col gap-2 hidden">
+                <div class="flex items-center gap-3 p-2.5 rounded-xl" style="background:#eff6ff;">
+                  <span class="text-lg font-black" style="color:#1e73be;">1</span>
+                  <span class="text-sm">🍽️</span>
+                  <span class="flex-1 text-sm font-bold text-gray-800">식사</span>
+                  <span class="text-sm font-extrabold" style="color:#1e73be;">475,000원</span>
+                </div>
+                <div class="flex items-center gap-3 p-2.5 rounded-xl" style="background:#f0f9ff;">
+                  <span class="text-lg font-black text-gray-400">2</span>
+                  <span class="text-sm">☕</span>
+                  <span class="flex-1 text-sm font-semibold text-gray-700">카페/음료</span>
+                  <span class="text-sm font-semibold text-gray-600">275,000원</span>
+                </div>
+                <div class="flex items-center gap-3 p-2.5 rounded-xl" style="background:#f8faff;">
+                  <span class="text-lg font-black text-gray-400">3</span>
+                  <span class="text-sm">🚌</span>
+                  <span class="flex-1 text-sm font-semibold text-gray-700">교통</span>
+                  <span class="text-sm font-semibold text-gray-600">187,500원</span>
+                </div>
+                <div class="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50">
+                  <span class="text-lg font-black text-gray-300">4</span>
+                  <span class="text-sm">🛍️</span>
+                  <span class="flex-1 text-sm font-semibold text-gray-600">쇼핑</span>
+                  <span class="text-sm font-semibold text-gray-400">150,000원</span>
+                </div>
+                <div class="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50">
+                  <span class="text-lg font-black text-gray-300">5</span>
+                  <span class="text-sm">🏪</span>
+                  <span class="flex-1 text-sm font-semibold text-gray-600">편의점</span>
+                  <span class="text-sm font-semibold text-gray-400">100,000원</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ⑤ 생애주기 (개선) -->
+            <div class="rounded-2xl p-4 relative overflow-hidden" style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style="background:white;box-shadow:0 2px 8px rgba(30,115,190,0.15);">🧬</div>
+                <div class="flex-1">
+                  <p class="text-[10px] font-bold text-gray-400 mb-0.5">AI 생애주기 분석</p>
+                  <p class="font-extrabold text-base" style="color:#1e73be;">사회초년생 성장기</p>
+                  <p class="text-xs text-gray-500 mt-1 leading-relaxed">소비 패턴이 안정적으로 형성되고 있어요. 저축 습관을 지금 시작하면 좋아요.</p>
+                </div>
+              </div>
+              <div class="mt-3 flex gap-2">
+                <span class="chip" style="background:white;color:#1e73be;border:1px solid #dbeafe;">📈 저축 시작 추천</span>
+                <span class="chip" style="background:white;color:#16a34a;border:1px solid #dcfce7;">🌱 성장 단계</span>
+              </div>
+            </div>
+
+            <!-- ⑥ 시간대 패턴 (개선) - 히트맵 바 -->
+            <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <p class="section-label">시간대 소비 패턴</p>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background:#fff7ed;color:#ea580c;">🔥 점심 피크</span>
+              </div>
+
+              <div class="flex flex-col gap-3">
+                <!-- 새벽 5% -->
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0" style="background:#f1f5f9;">🌙</div>
+                  <div class="flex-1">
+                    <div class="flex justify-between mb-1">
+                      <span class="text-xs font-semibold text-gray-600">새벽</span>
+                      <span class="text-xs text-gray-400">5%</span>
+                    </div>
+                    <div class="w-full h-2.5 rounded-full" style="background:#f1f5f9;">
+                      <div class="heatmap-bar bar-animate" style="width:5%;background:#bfdbfe;"></div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 아침 18% -->
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0" style="background:#f1f5f9;">🌅</div>
+                  <div class="flex-1">
+                    <div class="flex justify-between mb-1">
+                      <span class="text-xs font-semibold text-gray-600">아침</span>
+                      <span class="text-xs text-gray-400">18%</span>
+                    </div>
+                    <div class="w-full h-2.5 rounded-full" style="background:#f1f5f9;">
+                      <div class="heatmap-bar bar-animate" style="width:18%;background:#60a5fa;"></div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 점심 42% 🔥 강조 -->
+                <div class="flex items-center gap-3 p-2 rounded-xl" style="background:#fff7ed;">
+                  <div class="w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0" style="background:#fed7aa;">☀️</div>
+                  <div class="flex-1">
+                    <div class="flex justify-between mb-1">
+                      <span class="text-xs font-extrabold" style="color:#ea580c;">점심 🔥</span>
+                      <span class="text-xs font-extrabold" style="color:#ea580c;">42%</span>
+                    </div>
+                    <div class="w-full h-3 rounded-full" style="background:#fed7aa;">
+                      <div class="h-3 rounded-full bar-animate" style="width:42%;background:linear-gradient(90deg,#fb923c,#f97316);"></div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 저녁 28% -->
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0" style="background:#f1f5f9;">🍽️</div>
+                  <div class="flex-1">
+                    <div class="flex justify-between mb-1">
+                      <span class="text-xs font-semibold text-gray-600">저녁</span>
+                      <span class="text-xs text-gray-400">28%</span>
+                    </div>
+                    <div class="w-full h-2.5 rounded-full" style="background:#f1f5f9;">
+                      <div class="heatmap-bar bar-animate" style="width:28%;background:#93c5fd;"></div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 심야 7% -->
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0" style="background:#f1f5f9;">🌃</div>
+                  <div class="flex-1">
+                    <div class="flex justify-between mb-1">
+                      <span class="text-xs font-semibold text-gray-600">심야</span>
+                      <span class="text-xs text-gray-400">7%</span>
+                    </div>
+                    <div class="w-full h-2.5 rounded-full" style="background:#f1f5f9;">
+                      <div class="heatmap-bar bar-animate" style="width:7%;background:#bfdbfe;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ⑦ 스켈레톤 예시 섹션 -->
+            <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <p class="section-label mb-3">로딩 상태 개선 (스켈레톤)</p>
+              <div class="flex flex-col gap-3">
+                <!-- 스켈레톤 배너 -->
+                <div class="rounded-xl h-16 shimmer pulse"></div>
+                <!-- 스켈레톤 통계 -->
+                <div class="flex gap-2">
+                  <div class="flex-1 rounded-xl h-14 shimmer pulse"></div>
+                  <div class="flex-1 rounded-xl h-14 shimmer pulse"></div>
+                  <div class="flex-1 rounded-xl h-14 shimmer pulse"></div>
+                </div>
+                <!-- 스켈레톤 카드 -->
+                <div class="rounded-xl p-3 border border-gray-100 flex gap-3">
+                  <div class="w-11 h-14 rounded-xl shimmer pulse shrink-0"></div>
+                  <div class="flex-1 flex flex-col gap-2">
+                    <div class="h-3 w-20 rounded shimmer pulse"></div>
+                    <div class="h-4 w-32 rounded shimmer pulse"></div>
+                    <div class="h-3 w-24 rounded shimmer pulse"></div>
+                  </div>
+                </div>
+                <p class="text-[10px] text-gray-400 text-center">실제 데이터 수신 시 자연스럽게 전환</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 범례 -->
+  <div class="max-w-2xl mx-auto mt-10 grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="bg-white rounded-2xl p-3 shadow-sm text-center">
+      <p class="text-lg mb-1">🎯</p>
+      <p class="text-xs font-bold text-gray-700">소비 건강 점수</p>
+      <p class="text-[10px] text-gray-400 mt-0.5">재방문 유도</p>
+    </div>
+    <div class="bg-white rounded-2xl p-3 shadow-sm text-center">
+      <p class="text-lg mb-1">📊</p>
+      <p class="text-xs font-bold text-gray-700">전월 비교 지표</p>
+      <p class="text-[10px] text-gray-400 mt-0.5">맥락 제공</p>
+    </div>
+    <div class="bg-white rounded-2xl p-3 shadow-sm text-center">
+      <p class="text-lg mb-1">🏷️</p>
+      <p class="text-xs font-bold text-gray-700">추천 이유 태그</p>
+      <p class="text-[10px] text-gray-400 mt-0.5">클릭률 향상</p>
+    </div>
+    <div class="bg-white rounded-2xl p-3 shadow-sm text-center">
+      <p class="text-lg mb-1">⚡</p>
+      <p class="text-xs font-bold text-gray-700">스켈레톤 로딩</p>
+      <p class="text-[10px] text-gray-400 mt-0.5">체감 속도 향상</p>
+    </div>
+  </div>
+
+  <script>
+    // 도넛 차트 (현재 화면용)
+    const ctx = document.getElementById('donutOld').getContext('2d')
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['식사','카페/음료','교통','쇼핑','편의점','기타'],
+        datasets: [{
+          data: [38,22,15,12,8,5],
+          backgroundColor: ['#1e73be','#38BDF8','#60a5fa','#93c5fd','#0ea5e9','#bfdbfe'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        cutout: '60%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        animation: false,
+      }
+    })
+
+    // 카테고리 탭 전환
+    function switchCatTab(tab) {
+      const pctView = document.getElementById('catPctView')
+      const amtView = document.getElementById('catAmtView')
+      const tabPct = document.getElementById('tabPct')
+      const tabAmt = document.getElementById('tabAmt')
+      if (tab === 'pct') {
+        pctView.classList.remove('hidden')
+        amtView.classList.add('hidden')
+        tabPct.style.background = '#1e73be'
+        tabPct.style.color = 'white'
+        tabAmt.style.background = 'white'
+        tabAmt.style.color = '#9ca3af'
+      } else {
+        pctView.classList.add('hidden')
+        amtView.classList.remove('hidden')
+        tabAmt.style.background = '#1e73be'
+        tabAmt.style.color = 'white'
+        tabPct.style.background = 'white'
+        tabPct.style.color = '#9ca3af'
+      }
+    }
+  </script>
+</body>
+</html>
