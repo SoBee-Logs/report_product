@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const CATEGORY_COLORS = {
   '교통':        '#60a5fa',
@@ -24,8 +24,14 @@ const API_BASE = 'http://localhost:8000'
 
 export default function ReportDetail() {
   const navigate = useNavigate()
+  const location = useLocation()                          // ✅ scrollTo 받기 위해 추가
   const [txData,  setTxData]  = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // 각 섹션 ref
+  const categoryRef = useRef(null)
+  const weeklyRef = useRef(null)
+  const timeRef = useRef(null)
 
   useEffect(() => {
     fetch(`${API_BASE}/report/mydata/transaction?user_id=1`)
@@ -33,6 +39,26 @@ export default function ReportDetail() {
       .then(setTxData)
       .finally(() => setLoading(false))
   }, [])
+
+  // 로딩 끝나고 ref 마운트된 뒤 해당 섹션으로 스크롤
+  useEffect(() => {
+    if (loading) return
+    const target = location.state?.scrollTo
+    if (!target) return
+
+    const refMap = {
+      category: categoryRef,
+      weekly: weeklyRef,
+      time: timeRef,
+    }
+    const targetRef = refMap[target]
+    if (targetRef?.current) {
+      // DOM 렌더링 후 부드럽게 스크롤
+      setTimeout(() => {
+        targetRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 200)
+    }
+  }, [loading, location.state])
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-64 gap-3">
@@ -54,7 +80,6 @@ export default function ReportDetail() {
 
   const maxTotal = Math.max(...categoryList.map(c => c.total), 1)
 
-  // 이번주(4주차) 카테고리별 금액
   const thisWeekList = txData?.weekly_price?.length > 0
     ? (() => {
         const lastWeek = txData.weekly_price[txData.weekly_price.length - 1]
@@ -64,7 +89,6 @@ export default function ReportDetail() {
       })()
     : null
 
-  // 시간대 배열 (데이터 없으면 0으로 표시)
   const timeList = txData
     ? (() => {
         const total = Object.values(txData.timepattern_price).reduce((a, b) => a + b, 0)
@@ -82,8 +106,8 @@ export default function ReportDetail() {
   return (
     <div className="flex flex-col gap-4 pt-4 px-4 pb-24 overflow-y-auto">
 
-      {/* 이번 달 카테고리별 소비 */}
-      <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
+      {/* 이번 달 카테고리별 소비 - categoryRef */}
+      <div ref={categoryRef} className="rounded-2xl border border-gray-100 p-4 shadow-sm scroll-mt-4">
         <p className="text-xs text-gray-500 font-semibold mb-4">📊 이번 달 카테고리별 소비</p>
         <div className="flex flex-col gap-3">
           {categoryList.map((cat) => (
@@ -109,9 +133,9 @@ export default function ReportDetail() {
         </div>
       </div>
 
-      {/* 이번주 소비 */}
+      {/* 이번주 소비 - weeklyRef */}
       {thisWeekList && (
-        <div className="flex flex-col gap-3">
+        <div ref={weeklyRef} className="flex flex-col gap-3 scroll-mt-4">
           <div className="flex items-center justify-between">
             <p className="text-xs text-gray-500 font-semibold">📅 이번주 소비</p>
             <span className="text-[10px] text-[#1e73be] bg-blue-50 px-2 py-0.5 rounded-full font-semibold">
@@ -152,9 +176,9 @@ export default function ReportDetail() {
         </div>
       )}
 
-      {/* 시간대별 소비 금액 */}
+      {/* 시간대별 소비 금액 - timeRef */}
       {timeList.length > 0 && (
-        <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <div ref={timeRef} className="rounded-2xl border border-gray-100 p-4 shadow-sm scroll-mt-4">
           <p className="text-xs text-gray-500 font-semibold mb-3">⏰ 시간대별 소비 금액</p>
           <div className="flex flex-col gap-3">
             {timeList.map((t) => (
@@ -171,8 +195,8 @@ export default function ReportDetail() {
                     <div
                       className="h-2 rounded-full"
                       style={{
-                        width: t.pct === 0 ? '2%' : `${t.pct}%`,  // 0%면 최소 너비
-                        background: t.pct === 0 ? '#e5e7eb' : '#1e73be',  // 0%면 회색
+                        width: t.pct === 0 ? '2%' : `${t.pct}%`,
+                        background: t.pct === 0 ? '#e5e7eb' : '#1e73be',
                       }}
                     />
                   </div>
