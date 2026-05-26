@@ -1,1 +1,6 @@
 /logs
+
+# airflow/.gitignore에 추가 필요
+__pycache__/
+*.pyc
+.env
