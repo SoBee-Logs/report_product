@@ -1,6 +1,8 @@
 spring:
   application:
     name: sobee
+  elasticsearch:
+    uris: ${ES_URI:http://localhost:9200}
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -30,5 +32,3 @@ fss:
     url: https://finlife.fss.or.kr/finlifeapi
     key: ${FINANCE_API_KEY}
 
-fastapi:
-  base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
