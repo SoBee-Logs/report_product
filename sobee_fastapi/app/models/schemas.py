@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 # 아바타
 class AvatarRequest(BaseModel):
@@ -23,7 +23,7 @@ class RecommendResponse(BaseModel):
 
 # LifecycleRequest
 class LifecycleRequest(BaseModel):
-    user_id: int                           # 필수
+    user_id: int                           
 
 # LifecycleResponse
 class LifecycleResponse(BaseModel):
@@ -53,6 +53,17 @@ class DiaryGenerateRequest(BaseModel):
 
 class DiaryGenerateResponse(BaseModel):
     message: str
+
+# 카테고리 매핑 (표준 16개 카테고리)
+class CategoryResolveRequest(BaseModel):
+    payment_category: str                  
+    payment_place: Optional[str] = None    
+
+class CategoryResolveResponse(BaseModel):
+    payment_payment_category_id: int                     
+    category_name: str                    
+    matched_by: Literal["tier2", "tier1", "etc"]
+    # tier2 = (유형+가맹점명) 매칭 / tier1 = 유형만 매칭 / etc = 매핑 실패
 
 # AI 상품 추천
 class AiInsightContent(BaseModel):
