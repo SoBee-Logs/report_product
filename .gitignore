@@ -1,6 +1,5 @@
 .DS_Store
 **/.DS_Store
-.DS_Store
 
 venv/
 
@@ -12,3 +11,22 @@ key.pem
 .env
 .env.local
 .env.prod
+
+# Spring Boot 빌드 산출물
+sobee_springboot/build/
+sobee_springboot/.gradle/
+
+# IntelliJ
+.idea/
+*.iml
+
+# Node
+sobee-log/node_modules/
+sobee-log/dist/
+
+# Python 캐시
+**/__pycache__/
+*.pyc
+
+# Elasticsearch 데이터 볼륨
+es_data/
