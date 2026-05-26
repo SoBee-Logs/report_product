@@ -93,6 +93,7 @@ class ParseSearchRequest(BaseModel):
 
 class ParseSearchResponse(BaseModel):
     product_types: List[str]
+    company: Optional[str] = None
     category: Optional[str] = None
     keywords: List[str]
     ai_text: str

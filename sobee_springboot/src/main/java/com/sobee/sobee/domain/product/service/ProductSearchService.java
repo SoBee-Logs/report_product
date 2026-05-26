@@ -55,7 +55,7 @@ public class ProductSearchService {
         NativeQuery query = NativeQuery.builder()
                 .withQuery(q -> q.multiMatch(m -> m
                         .query(keyword)
-                        .fields("cardName^3", "cateNames^2", "topBenefitTitles^2", "corpName")
+                        .fields("cardName^3", "corpName^3", "cateNames^2", "topBenefitTitles^2")
                         .fuzziness("AUTO")
                 ))
                 .withPageable(PageRequest.of(0, 30))
