@@ -389,6 +389,43 @@ export default function ProductSearch() {
                 </div>
             </div>
 
+            {/* 탭 바 - 스크롤 영역 밖 고정 */}
+            {isSearched && (
+                <div style={{ display: "flex", gap: 8, padding: "10px 20px", background: "#fff", borderBottom: "1px solid #EEF1F5", flexShrink: 0 }}>
+                    {TABS.map(({ key, label }) => {
+                        const count = products.filter(p => p.product_type === key).length;
+                        const isActive = activeTab === key;
+                        return (
+                            <button
+                                key={key}
+                                onClick={() => setActiveTab(key)}
+                                style={{
+                                    flex: 1, padding: "8px 0", borderRadius: 10,
+                                    background: isActive ? WOORI_BLUE : "#fff",
+                                    color: isActive ? "#fff" : "#8494A8",
+                                    fontWeight: isActive ? 700 : 500,
+                                    fontSize: 12, cursor: "pointer",
+                                    border: isActive ? "none" : "1.5px solid #EEF1F5",
+                                    transition: "all 0.15s",
+                                }}
+                            >
+                                {label}
+                                {count > 0 && (
+                                    <span style={{
+                                        marginLeft: 4, fontSize: 10,
+                                        background: isActive ? "rgba(255,255,255,0.3)" : "#EEF1F5",
+                                        color: isActive ? "#fff" : "#8494A8",
+                                        borderRadius: 99, padding: "1px 5px",
+                                    }}>
+                                        {count}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
             {/* Body */}
             <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
                 {isLoading ? (
@@ -411,41 +448,6 @@ export default function ProductSearch() {
                     </div>
                 ) : isSearched ? (
                     <>
-                        {/* 탭 바 */}
-                        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-                            {TABS.map(({ key, label }) => {
-                                const count = products.filter(p => p.product_type === key).length;
-                                const isActive = activeTab === key;
-                                return (
-                                    <button
-                                        key={key}
-                                        onClick={() => setActiveTab(key)}
-                                        style={{
-                                            flex: 1, padding: "8px 0", borderRadius: 10,
-                                            background: isActive ? WOORI_BLUE : "#fff",
-                                            color: isActive ? "#fff" : "#8494A8",
-                                            fontWeight: isActive ? 700 : 500,
-                                            fontSize: 12, cursor: "pointer",
-                                            border: isActive ? "none" : "1.5px solid #EEF1F5",
-                                            transition: "all 0.15s",
-                                        }}
-                                    >
-                                        {label}
-                                        {count > 0 && (
-                                            <span style={{
-                                                marginLeft: 4, fontSize: 10,
-                                                background: isActive ? "rgba(255,255,255,0.3)" : "#EEF1F5",
-                                                color: isActive ? "#fff" : "#8494A8",
-                                                borderRadius: 99, padding: "1px 5px",
-                                            }}>
-                                                {count}
-                                            </span>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
                         {/* 탭 콘텐츠 */}
                         {tabProducts.length > 0 ? (
                             tabProducts.map((item, i) => (
