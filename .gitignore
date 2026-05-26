@@ -9,7 +9,7 @@ key.pem
 
 # 환경변수
 .env
-.env.local
+.env.localwq
 .env.prod
 
 # Spring Boot 빌드 산출물
