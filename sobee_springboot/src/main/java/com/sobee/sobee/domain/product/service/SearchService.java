@@ -1,28 +1,46 @@
 package com.sobee.sobee.domain.product.service;
 
+import com.sobee.sobee.domain.product.dto.ParsedSearchDto;
 import com.sobee.sobee.domain.product.dto.SearchRequestDto;
 import com.sobee.sobee.domain.product.dto.SearchResponseDto;
 import com.sobee.sobee.domain.product.dto.SearchResultDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SearchService {
 
     private final ProductSearchService productSearchService;
+    private final RestTemplate restTemplate;
+
+    @Value("${fastapi.base-url:http://localhost:8000}")
+    private String fastapiBaseUrl;
 
     public SearchResponseDto search(SearchRequestDto request) {
         String keyword = request.getSearch_input();
 
-        SearchResultDto result = productSearchService.search(keyword);
+        ParsedSearchDto parsed = callParseSearch(keyword);
+
+        SearchResultDto result = (parsed != null)
+                ? productSearchService.searchStructured(parsed, keyword)
+                : productSearchService.search(keyword);
+
+        String aiText = (parsed != null && parsed.getAi_text() != null && !parsed.getAi_text().isBlank())
+                ? parsed.getAi_text()
+                : "'" + keyword + "' 관련 상품을 찾았어요. 총 " + result.getTotalCount() + "개의 상품이 있어요.";
 
         List<SearchResponseDto.ProductDto> products = new ArrayList<>();
 
-        // 카드
         for (SearchResultDto.CardResult c : result.getCards()) {
             String cardUrl = c.getGorillaId() != null
                     ? "https://www.card-gorilla.com/card/detail/" + c.getGorillaId()
@@ -59,7 +77,6 @@ public class SearchService {
                     .build());
         }
 
-        // 예적금
         for (SearchResultDto.SavingsResult s : result.getSavings()) {
             products.add(SearchResponseDto.ProductDto.builder()
                     .product_name(s.getFinPrdtNm())
@@ -75,7 +92,6 @@ public class SearchService {
                     .build());
         }
 
-        // 미니보험
         for (SearchResultDto.InsuranceResult i : result.getInsurance()) {
             products.add(SearchResponseDto.ProductDto.builder()
                     .product_name(i.getProductName())
@@ -92,8 +108,21 @@ public class SearchService {
         }
 
         return SearchResponseDto.builder()
-                .AI_text("'" + keyword + "' 관련 상품을 찾았어요. 총 " + result.getTotalCount() + "개의 상품이 있어요.")
+                .AI_text(aiText)
                 .products(products)
                 .build();
+    }
+
+    private ParsedSearchDto callParseSearch(String query) {
+        try {
+            ResponseEntity<ParsedSearchDto> response = restTemplate.postForEntity(
+                    fastapiBaseUrl + "/internal/parse-search",
+                    Map.of("query", query),
+                    ParsedSearchDto.class);
+            return response.getBody();
+        } catch (Exception e) {
+            log.warn("GPT 파싱 실패, 키워드 검색으로 폴백: {}", e.getMessage());
+            return null;
+        }
     }
 }
