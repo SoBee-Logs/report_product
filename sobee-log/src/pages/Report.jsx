@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import {
   PieChart, Pie, Cell, Tooltip,
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
+  AreaChart, Area,
   LineChart, Line, CartesianGrid, LabelList, ReferenceLine
 } from 'recharts'
 
@@ -371,26 +372,51 @@ export default function Report() {
             <>
               <div className="border-t border-gray-100 my-3" />
               <p className="text-[10px] text-gray-400 mb-2">TOP 3 소비금액</p>
-              <ResponsiveContainer width="100%" height={130}>
-                <BarChart
-                  data={top3}
-                  layout="vertical"
-                  margin={{ left: 8, right: 80, top: 4, bottom: 4 }}
-                >
-                  <XAxis type="number" hide />
-                  <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} interval={0} />
-                  <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
-                    {top3.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                    <LabelList
-                      dataKey="amount"
-                      position="right"
-                      formatter={(v) => `${v.toLocaleString()}원`}
-                      style={{ fontSize: 11, fill: '#374151', fontWeight: 600 }}
-                    />
-                  </Bar>
-                  <Tooltip formatter={(v) => `${v.toLocaleString()}원`} />
-                </BarChart>
-              </ResponsiveContainer>
+              {(() => {
+                const RANK_BADGES = ['①', '②', '③']
+                const RANK_COLORS = ['#f59e0b', '#9ca3af', '#b45309']
+                const rankedTop3 = top3.map((entry, i) => ({
+                  ...entry,
+                  rankName: `${RANK_BADGES[i]} ${entry.name}`,
+                }))
+                return (
+                  <ResponsiveContainer width="100%" height={130}>
+                    <BarChart
+                      data={rankedTop3}
+                      layout="vertical"
+                      margin={{ left: 8, right: 110, top: 4, bottom: 4 }}
+                    >
+                      <XAxis type="number" hide />
+                      <YAxis
+                        type="category"
+                        dataKey="rankName"
+                        width={88}
+                        interval={0}
+                        tick={({ x, y, payload, index }) => (
+                          <text x={x} y={y} textAnchor="end" dominantBaseline="middle" fontSize={11}>
+                            <tspan fill={RANK_COLORS[index]} fontWeight={700}>{RANK_BADGES[index]} </tspan>
+                            <tspan fill="#374151">{top3[index]?.name}</tspan>
+                          </text>
+                        )}
+                      />
+                      <Bar dataKey="amount" radius={[0, 4, 4, 0]} barSize={18}>
+                        {rankedTop3.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                        <LabelList
+                          dataKey="amount"
+                          position="right"
+                          content={({ x, y, width, height, value, index }) => (
+                            <text x={x + width + 6} y={y + height / 2} dominantBaseline="middle" fontSize={11} fill="#374151" fontWeight={600}>
+                              {`${value.toLocaleString()}원 `}
+                              <tspan fill="#9ca3af" fontSize={10}>{`(${top3[index]?.value}%)`}</tspan>
+                            </text>
+                          )}
+                        />
+                      </Bar>
+                      <Tooltip formatter={(v) => [`${v.toLocaleString()}원`, '소비금액']} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )
+              })()}
             </>
           )}
         </div>
@@ -416,13 +442,31 @@ export default function Report() {
                 .reduce((sum, [, v]) => sum + v, 0),
             }))
             const avg = Math.round(weeklyTotals.reduce((s, w) => s + w.total, 0) / weeklyTotals.length)
+            const getBarColor = (total) => total > avg ? '#ef4444' : '#1e73be'
+
+            const getChangeLabel = (total, idx) => {
+              const base = `${Math.round(total / 10000)}만`
+              if (idx === 0) return base
+              const prev = weeklyTotals[idx - 1].total
+              if (prev === 0) return base
+              const pct = Math.round(((total - prev) / prev) * 100)
+              if (pct === 0) return base
+              const arrow = pct > 0 ? '↑' : '↓'
+              const color = pct > 0 ? '#ef4444' : '#22c55e'
+              return `${base} ${arrow}${Math.abs(pct)}%`
+            }
+
             return (
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={weeklyTotals} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={190}>
+                <BarChart data={weeklyTotals} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                   <XAxis dataKey="week" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis hide />
-                  <Tooltip formatter={(v) => `${v.toLocaleString()}원`} />
+                  <Tooltip
+                    formatter={(v) => [`${v.toLocaleString()}원`, '소비금액']}
+                    labelFormatter={(l) => `${l}주차`}
+                    contentStyle={{ borderRadius: 8, fontSize: 12, border: '1px solid #e5e7eb' }}
+                  />
                   <ReferenceLine
                     y={avg}
                     stroke="#f97316"
@@ -430,12 +474,33 @@ export default function Report() {
                     strokeWidth={1.5}
                     label={{ value: `평균 ${Math.round(avg / 10000)}만`, position: 'insideTopRight', fontSize: 10, fill: '#f97316', fontWeight: 600 }}
                   />
-                  <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="#1e73be" barSize={28}>
+                  <Bar dataKey="total" radius={[6, 6, 0, 0]} barSize={28}>
+                    {weeklyTotals.map((entry, idx) => (
+                      <Cell
+                        key={`cell-${idx}`}
+                        fill={getBarColor(entry.total)}
+                        opacity={0.85}
+                      />
+                    ))}
                     <LabelList
                       dataKey="total"
                       position="top"
-                      formatter={(v) => v > 0 ? `${Math.round(v / 10000)}만` : ''}
-                      style={{ fontSize: 10, fill: '#8494A8', fontWeight: 600 }}
+                      content={({ x, y, width, value, index }) => {
+                        if (!value) return null
+                        const label = getChangeLabel(value, index)
+                        const parts = label.split(' ')
+                        const hasChange = parts.length > 1
+                        const changeText = hasChange ? parts[1] : null
+                        const isUp = changeText?.startsWith('↑')
+                        return (
+                          <text x={x + width / 2} y={y - 4} textAnchor="middle">
+                            <tspan fontSize={10} fill="#374151" fontWeight={600}>{parts[0]}</tspan>
+                            {hasChange && (
+                              <tspan fontSize={9} fill={isUp ? '#ef4444' : '#22c55e'} fontWeight={700}> {changeText}</tspan>
+                            )}
+                          </text>
+                        )
+                      }}
                     />
                   </Bar>
                 </BarChart>
@@ -457,8 +522,14 @@ export default function Report() {
               더보기 →
             </button>
           </div>
-          <ResponsiveContainer width="100%" height={140}>
-            <LineChart data={timeList} margin={{ top: 8, right: 20, left: 20, bottom: 10 }}>
+          <ResponsiveContainer width="100%" height={160}>
+            <AreaChart data={timeList} margin={{ top: 20, right: 20, left: 20, bottom: 10 }}>
+              <defs>
+                <linearGradient id="timeGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#1e73be" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#1e73be" stopOpacity={0} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
               <XAxis
                 dataKey="label"
@@ -474,16 +545,41 @@ export default function Report() {
                 height={40}
               />
               <YAxis hide />
-              <Tooltip formatter={(v) => [`비중 ${v}%`, '']} labelFormatter={(l) => `${TIME_ICONS[l]} ${l}`} />
-              <Line
+              <Tooltip
+                formatter={(v) => [`비중 ${v}%`, '']}
+                labelFormatter={(l) => `${TIME_ICONS[l]} ${l}`}
+                contentStyle={{ borderRadius: 8, fontSize: 12, border: '1px solid #e5e7eb' }}
+              />
+              <Area
                 type="monotone"
                 dataKey="pct"
                 stroke="#1e73be"
                 strokeWidth={2.5}
-                dot={{ r: 4, fill: '#1e73be', strokeWidth: 0 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
+                fill="url(#timeGradient)"
+                dot={({ cx, cy, payload }) => {
+                  const isPeak = payload.pct === peakTime?.pct
+                  return (
+                    <circle
+                      key={`dot-${cx}-${cy}`}
+                      cx={cx}
+                      cy={cy}
+                      r={isPeak ? 7 : 4}
+                      fill={isPeak ? '#f97316' : '#1e73be'}
+                      stroke="white"
+                      strokeWidth={2}
+                    />
+                  )
+                }}
+                activeDot={{ r: 7, stroke: 'white', strokeWidth: 2 }}
+              >
+                <LabelList
+                  dataKey="pct"
+                  position="top"
+                  formatter={(v) => v > 0 ? `${v}%` : ''}
+                  style={{ fontSize: 10, fill: '#6B7280', fontWeight: 600 }}
+                />
+              </Area>
+            </AreaChart>
           </ResponsiveContainer>
           {peakTime && (
             <p className="text-[11px] text-center text-gray-400 mt-2">
