@@ -2,9 +2,9 @@ from app.services.lifecycle_service import engine
 from sqlalchemy import text
 import pandas as pd
 from datetime import datetime, timedelta
+import calendar
 
 # category_master의 category_name 기준 색상 매핑
-# category_master에 실제 등록된 category_name 값에 맞춰 키를 수정하세요
 CATEGORY_COLORS = {
     '교통':        '#60a5fa',
     '카페/음료':   '#38BDF8',
@@ -20,11 +20,19 @@ CATEGORY_COLORS = {
 }
 
 
-def get_transaction_report(user_id: int):
+def get_transaction_report(user_id: int, year: int = None, month: int = None):
     now = datetime.now()
-    first_day = now.replace(day=1).strftime("%Y-%m-%d")
-    last_day = (now.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-    last_day = last_day.strftime("%Y-%m-%d")
+
+    # ✅ year/month 파라미터 없으면 현재 달로 fallback
+    target_year  = year  if year  else now.year
+    target_month = month if month else now.month
+
+    first_day = datetime(target_year, target_month, 1).strftime("%Y-%m-%d")
+    last_day  = datetime(
+        target_year,
+        target_month,
+        calendar.monthrange(target_year, target_month)[1]  # ✅ 해당 달의 마지막 날 정확히 계산
+    ).strftime("%Y-%m-%d")
 
     # payment_category_id → category_master.category_name JOIN
     df = pd.read_sql(text("""

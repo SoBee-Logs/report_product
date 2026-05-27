@@ -1,7 +1,6 @@
 from sqlalchemy import text
 import pandas as pd
 from app.services.lifecycle_service import engine
-from ml.lifecycle_model import RAW_TO_UNIFIED
 from app.models.schemas import AiInsightContent, AiInsightItem, AiInsightResponse
 
 CATEGORY_TO_CATE = {
@@ -44,7 +43,6 @@ LIFE_STAGE_SAVE_TRM = {
 }
 
 CHILD_STAGES = {'TEEN', 'CHILD_BABY', 'CHILD_TEEN', 'CHILD_UNI'}
-
 CHILD_KEYWORDS = '키즈|아이|어린이|주니어|청소년|영유아|태아|baby|kids|junior'
 
 
@@ -147,7 +145,12 @@ def _query_savings(save_trm: int = 12, life_stage_code: str | None = None) -> Ai
     )
 
 
-async def get_ai_insight(user_id: int) -> AiInsightResponse:
+async def get_ai_insight(user_id: int, category_price: dict) -> AiInsightResponse:
+    """
+    ✅ report_service에서 이미 계산된 category_price를 받아서 사용
+       — DB 트랜잭션 중복 조회 없음
+    """
+    # 유저 생애주기 조회 (users 테이블만 한 번 조회)
     df_user = pd.read_sql(text("""
         SELECT life_stage_code FROM users WHERE user_id = :user_id
     """), engine, params={"user_id": user_id})
@@ -155,18 +158,11 @@ async def get_ai_insight(user_id: int) -> AiInsightResponse:
     if pd.isna(life_stage_code) if life_stage_code is not None else True:
         life_stage_code = None
 
-    df_tx = pd.read_sql(text("""
-        SELECT payment_category, payment_out
-        FROM transactions
-        WHERE user_id = :user_id
-
-    """), engine, params={"user_id": user_id})
-
+    # ✅ category_price dict에서 top 카테고리 바로 추출
     top_category = '기타'
     cate_name = '모든가맹점'
-    if not df_tx.empty:
-        df_tx['unified'] = df_tx['payment_category'].map(RAW_TO_UNIFIED).fillna('기타')
-        top_category = df_tx.groupby('unified')['payment_out'].sum().idxmax()
+    if category_price:
+        top_category = max(category_price, key=category_price.get)
         cate_name = CATEGORY_TO_CATE.get(top_category, '모든가맹점')
 
     card_item = _query_card(cate_name, top_category)
