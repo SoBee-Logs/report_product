@@ -6,15 +6,11 @@ const WOORI_GREEN = "#1D9E75";
 const WOORI_BLUE = "#1A6FBF";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const FASTAPI_BASE = "http://localhost:8000";
 
 const getUserId = () => Number(localStorage.getItem("user_id")) || 1;
 
 const api = {
-    getRecommendQuestions: () =>
-        fetch(`${BASE_URL}/search/recom_question`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }).then((r) => r.json()),
-
     search: (searchInput) =>
         fetch(`${BASE_URL}/search`, {
             method: "POST",
@@ -31,9 +27,10 @@ const api = {
 
 const FALLBACK_SUGGEST = [
     "실적 채울 카드 추천해줘",
-    "내 패턴에 맞는 카드",
+    "내 패턴에 맞는 카드 뭐야?",
     "나 여행 갈 건데 어떤 트래블 카드 써야 해?",
     "카페 혜택 좋은 카드는 뭐야?",
+    "금리 좋은 적금 상품 알려줘",
 ];
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
@@ -269,7 +266,8 @@ export default function ProductSearch() {
     const [selectedItem, setSelectedItem] = useState(null);
     const [activePage, setActivePage] = useState("search");
 
-    const [suggestedQuestions, setSuggestedQuestions] = useState(FALLBACK_SUGGEST);
+    const [suggestedQuestions, setSuggestedQuestions] = useState([]);
+    const [questionsLoading, setQuestionsLoading] = useState(true);
     // localStorage에서 최근 질문 불러오기 (없으면 빈 배열)
     const [recentQuestions, setRecentQuestions] = useState(
         () => JSON.parse(localStorage.getItem("recentQuestions") || "[]")
@@ -280,12 +278,24 @@ export default function ProductSearch() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        api.getRecommendQuestions()
+        const controller = new AbortController();
+        const userId = getUserId();
+        fetch(`${FASTAPI_BASE}/report/recommend-questions?user_id=${userId}`, { signal: controller.signal })
+            .then((r) => r.json())
             .then((data) => {
-                if (Array.isArray(data)) setSuggestedQuestions(data);
-                else if (data?.questions) setSuggestedQuestions(data.questions);
+                if (Array.isArray(data?.questions) && data.questions.length > 0) {
+                    setSuggestedQuestions(data.questions);
+                } else {
+                    setSuggestedQuestions(FALLBACK_SUGGEST);
+                }
             })
-            .catch(() => {});
+            .catch((e) => {
+                if (e.name !== "AbortError") setSuggestedQuestions(FALLBACK_SUGGEST);
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) setQuestionsLoading(false);
+            });
+        return () => controller.abort();
     }, []);
 
     const handleSearch = async (q) => {
@@ -470,17 +480,26 @@ export default function ProductSearch() {
                         {/* 추천 질문 */}
                         <div style={{ marginBottom: 24 }}>
                             <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: WOORI_NAVY }}>추천 질문</p>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                                {suggestedQuestions.map((q, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => handleSearch(getQuestionText(q))}
-                                        style={{ background: "#fff", border: "1.5px solid #DDE3EC", borderRadius: 99, padding: "8px 14px", fontSize: 12, color: WOORI_NAVY, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}
-                                    >
-                                        {getQuestionText(q)}
-                                    </button>
-                                ))}
-                            </div>
+                            {questionsLoading ? (
+                                <>
+                                    {[0, 1, 2, 3, 4].map((i) => (
+                                        <div key={i} style={{ height: 44, borderRadius: 12, background: "#EEF1F5", marginBottom: 8 }} />
+                                    ))}
+                                </>
+                            ) : (
+                                <>
+                                    {suggestedQuestions.map((q, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => handleSearch(getQuestionText(q))}
+                                            style={{ width: "100%", background: "#fff", border: "1.5px solid #EEF1F5", borderRadius: 12, padding: "12px 14px", textAlign: "left", fontSize: 13, color: WOORI_NAVY, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}
+                                        >
+                                            <span style={{ fontSize: 14, color: WOORI_BLUE }}>✦</span>
+                                            {getQuestionText(q)}
+                                        </button>
+                                    ))}
+                                </>
+                            )}
                         </div>
 
                         {/* 최근 질문 - 있을 때만 표시 */}
