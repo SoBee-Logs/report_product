@@ -86,3 +86,28 @@ class AiInsightItem(BaseModel):
 class AiInsightResponse(BaseModel):
     recommned: List[AiInsightItem]  # 스펙 오타 유지
     message: Optional[str] = None
+
+# 검색 AI 분석 텍스트
+class SearchProduct(BaseModel):
+    product_name: str
+    product_type: str  # card | savings | insurance
+    header: Optional[str] = None
+
+class AiSearchTextRequest(BaseModel):
+    query: str
+    user_id: int
+    products: List[SearchProduct]
+
+class AiSearchTextResponse(BaseModel):
+    ai_text: str
+
+# 시멘틱 검색 쿼리 파싱
+class ParseSearchRequest(BaseModel):
+    query: str
+
+class ParseSearchResponse(BaseModel):
+    product_types: List[str]
+    company: Optional[str] = None
+    category: Optional[str] = None
+    keywords: List[str]
+    ai_text: str
