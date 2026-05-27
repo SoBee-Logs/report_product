@@ -1,7 +1,9 @@
 package com.sobee.sobee.domain.product.controller;
 
+import com.sobee.sobee.domain.product.entity.CardInfo;
 import com.sobee.sobee.domain.product.entity.InsuranceProduct;
 import com.sobee.sobee.domain.product.entity.SavingsProduct;
+import com.sobee.sobee.domain.product.repository.CardInfoRepository;
 import com.sobee.sobee.domain.product.repository.SavingsProductRepository;
 import com.sobee.sobee.domain.product.service.InsuranceProductService;
 import com.sobee.sobee.domain.product.service.SavingsProductSyncService;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/financial-products")
@@ -20,6 +23,7 @@ public class FinancialProductController {
     private final SavingsProductSyncService savingsSyncService;
     private final SavingsProductRepository savingsRepo;
     private final InsuranceProductService insuranceService;
+    private final CardInfoRepository cardInfoRepo;
 
     // ===== 예적금 =====
 
@@ -64,5 +68,30 @@ public class FinancialProductController {
     @GetMapping("/insurance/search")
     public ResponseEntity<List<InsuranceProduct>> searchInsurance(@RequestParam String keyword) {
         return ResponseEntity.ok(insuranceService.search(keyword));
+    }
+
+    // ===== 상품 카탈로그 (추천 질문 생성용) =====
+
+    @GetMapping("/catalog")
+    public ResponseEntity<Map<String, Object>> getCatalog() {
+        List<String> cards = cardInfoRepo.findByIsDiscontinuedFalse().stream()
+                .map(CardInfo::getCardName)
+                .limit(20)
+                .collect(Collectors.toList());
+
+        List<String> savings = savingsRepo.findAll().stream()
+                .map(SavingsProduct::getFinPrdtNm)
+                .limit(15)
+                .collect(Collectors.toList());
+
+        List<String> insurance = insuranceService.findAll().stream()
+                .map(InsuranceProduct::getProductName)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(Map.of(
+                "cards", cards,
+                "savings", savings,
+                "insurance", insurance
+        ));
     }
 }
