@@ -3,66 +3,8 @@ from sqlalchemy import text
 import pandas as pd
 from datetime import datetime, timedelta
 
-# DB 카테고리 → 통합 카테고리 매핑
-CATEGORY_MAP = {
-    # 교통
-    '기타전문서비스(교통요금)':              '교통',
-    '인터넷상거래(버스/택시)':               '교통',
-    '택시':                               '교통',
-    '기타전문점(교통-버스/지하철)':           '교통',
-    '온라인상품권(기후동행카드)':             '교통',
-
-    # 카페/음료
-    '서양식전문점(커피류)':                  '카페/음료',
-    '커피전문점':                           '카페/음료',
-    '결제대행(PG)':                         '카페/음료',
-
-    # 식사
-    '일반음식점':                           '식사',
-    '일반대중음식':                         '식사',
-    '일반한식':                             '식사',
-    '한식':                               '식사',
-    '일식':                               '식사',
-    '패스트푸드':                           '식사',
-
-    # 편의점
-    '편의점':                              '편의점',
-    '편+의+점':                            '편의점',
-
-    # 쇼핑/온라인
-    'PG일반(인증)':                         '쇼핑/온라인',
-    '인터넷P/G':                           '쇼핑/온라인',
-    '전자상거래(다품목취급)':                 '쇼핑/온라인',
-
-    # 제과/베이커리
-    '제과·제빵':                            '제과/베이커리',
-    '제과점':                              '제과/베이커리',
-    '식품류제조업':                          '제과/베이커리',
-
-    # 선물/상품권
-    '온라인상품권(카카오선물하기)':            '선물/상품권',
-    '관광민예,선물용품':                     '선물/상품권',
-
-    # 의료/약국
-    '약국':                               '의료/약국',
-    '개인병원':                            '의료/약국',
-
-    # 완구/취미
-    '인형++및++완구++아동용++자전거':          '완구/취미',
-    '완+구+점':                            '완구/취미',
-    '공연장,극장':                          '완구/취미',
-
-    # 서적
-    '서적':                               '서적',
-
-    # 기타
-    '기타4':                              '기타',
-    '안경,콘텍트렌즈':                      '기타',
-    '인쇄,출판':                           '기타',
-    '할인점/슈퍼마켓':                      '기타',
-}
-
-# 통합 카테고리 색상
+# category_master의 category_name 기준 색상 매핑
+# category_master에 실제 등록된 category_name 값에 맞춰 키를 수정하세요
 CATEGORY_COLORS = {
     '교통':        '#60a5fa',
     '카페/음료':   '#38BDF8',
@@ -77,17 +19,25 @@ CATEGORY_COLORS = {
     '기타':        '#94a3b8',
 }
 
+
 def get_transaction_report(user_id: int):
     now = datetime.now()
     first_day = now.replace(day=1).strftime("%Y-%m-%d")
     last_day = (now.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
     last_day = last_day.strftime("%Y-%m-%d")
 
+    # payment_category_id → category_master.category_name JOIN
     df = pd.read_sql(text("""
-        SELECT payment_category, payment_time, payment_date, payment_out
-        FROM transactions
-        WHERE user_id = :user_id
-        AND payment_date BETWEEN :start AND :end
+        SELECT
+            COALESCE(cm.category_name, '기타') AS payment_category,
+            t.payment_time,
+            t.payment_date,
+            t.payment_out
+        FROM transactions t
+        LEFT JOIN category_master cm
+            ON t.payment_category_id = cm.payment_category_id
+        WHERE t.user_id = :user_id
+          AND t.payment_date BETWEEN :start AND :end
     """), engine, params={
         "user_id": user_id,
         "start": first_day,
@@ -104,13 +54,9 @@ def get_transaction_report(user_id: int):
             "weekly_categories": [],
         }
 
-    # 카테고리 매핑 적용
-    df['payment_category'] = df['payment_category'].map(CATEGORY_MAP).fillna('기타')
-
     def classify_time(t):
         if t is None:
             return '기타'
-        # aiomysql TIME 타입은 timedelta로 반환됨
         if isinstance(t, timedelta):
             hour = int(t.total_seconds() // 3600)
         else:
@@ -127,7 +73,6 @@ def get_transaction_report(user_id: int):
     def classify_week(d):
         if d is None:
             return '기타'
-        # DATE 타입은 datetime.date 객체로 반환됨
         if hasattr(d, 'day'):
             day = d.day
         else:
@@ -149,7 +94,7 @@ def get_transaction_report(user_id: int):
         .sum().nlargest(3).index.tolist()
     )
 
-    # 주차별 × 상위 2개 카테고리 집계
+    # 주차별 × 상위 3개 카테고리 집계
     df_top3 = df[df['payment_category'].isin(top3_categories)]
     weekly_pivot = (
         df_top3.groupby(['week_label', 'payment_category'])['payment_out']
