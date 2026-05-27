@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.api import avatar, recommend, lifecycle, report, internal
+from app.api import avatar, recommend, lifecycle, report, internal, category_mapping  # ⬅️ category_mapping 추가
 from app.db.connection import close_pool
 from app.core.config import settings
 
@@ -41,6 +41,7 @@ app.include_router(recommend.router, prefix="/api/recommend", tags=["recommend"]
 app.include_router(lifecycle.router, prefix="/api/lifecycle", tags=["lifecycle"])
 app.include_router(report.router, tags=["report"])
 app.include_router(internal.router)
+app.include_router(category_mapping.router, prefix="/api/category", tags=["category-mapping"])
 
 
 @app.get("/health")
