@@ -6,10 +6,7 @@ import pandas as pd
 
 engine = create_engine(
     f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}"
-    f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}",
-    pool_size=3,
-    max_overflow=2,
-    pool_recycle=300,
+    f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )
 
 LIFECYCLE_KO = {
