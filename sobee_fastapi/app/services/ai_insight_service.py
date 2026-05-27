@@ -3,6 +3,8 @@ import pandas as pd
 from app.services.lifecycle_service import engine
 from ml.lifecycle_model import RAW_TO_UNIFIED
 from app.models.schemas import AiInsightContent, AiInsightItem, AiInsightResponse
+from datetime import datetime
+import calendar
 
 CATEGORY_TO_CATE = {
     '카페/음료': '카페',
@@ -147,7 +149,19 @@ def _query_savings(save_trm: int = 12, life_stage_code: str | None = None) -> Ai
     )
 
 
-async def get_ai_insight(user_id: int) -> AiInsightResponse:
+async def get_ai_insight(user_id: int, year: int = None, month: int = None) -> AiInsightResponse:
+    # ✅ year/month 없으면 현재 달 fallback
+    now = datetime.now()
+    target_year  = year  if year  else now.year
+    target_month = month if month else now.month
+
+    first_day = datetime(target_year, target_month, 1).strftime("%Y-%m-%d")
+    last_day  = datetime(
+        target_year,
+        target_month,
+        calendar.monthrange(target_year, target_month)[1]
+    ).strftime("%Y-%m-%d")
+
     df_user = pd.read_sql(text("""
         SELECT life_stage_code FROM users WHERE user_id = :user_id
     """), engine, params={"user_id": user_id})
@@ -155,12 +169,17 @@ async def get_ai_insight(user_id: int) -> AiInsightResponse:
     if pd.isna(life_stage_code) if life_stage_code is not None else True:
         life_stage_code = None
 
+    # ✅ 해당 월 데이터만 필터링
     df_tx = pd.read_sql(text("""
         SELECT payment_category, payment_out
         FROM transactions
         WHERE user_id = :user_id
-
-    """), engine, params={"user_id": user_id})
+          AND payment_date BETWEEN :start AND :end
+    """), engine, params={
+        "user_id": user_id,
+        "start": first_day,
+        "end": last_day,
+    })
 
     top_category = '기타'
     cate_name = '모든가맹점'

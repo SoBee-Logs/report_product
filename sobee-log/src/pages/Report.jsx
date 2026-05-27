@@ -107,6 +107,55 @@ const TIME_ORDER = ['새벽', '아침', '점심', '저녁', '심야']
 const API_BASE = 'http://localhost:8000'
 const USER_ID = 1
 
+function MonthNavigator({ year, month, isCurrentMonth, onPrev, onNext }) {
+  return (
+    <div className="flex items-center justify-between h-12">
+      {/* 뒤로가기 자리 — 레이아웃 균형용 */}
+      <div className="w-9" />
+
+      {/* 중앙: 년월 + 이번달 배지 */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onPrev}
+          className="w-7 h-7 flex items-center justify-center rounded-full active:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+
+        <div className="flex items-center gap-1.5">
+          <span className="text-[15px] font-bold text-gray-900 tracking-tight">
+            {year}년 {month}월
+          </span>
+          {isCurrentMonth && (
+            <span className="text-[10px] font-semibold bg-[#1e73be] text-white rounded-full px-2 py-0.5 leading-tight">
+              이번 달
+            </span>
+          )}
+        </div>
+
+        <button
+          onClick={onNext}
+          disabled={isCurrentMonth}
+          className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${
+            isCurrentMonth
+              ? 'text-gray-200 cursor-not-allowed'
+              : 'text-gray-400 hover:text-gray-700 active:bg-gray-100'
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
+
+      {/* 오른쪽 여백 균형 */}
+      <div className="w-9" />
+    </div>
+  )
+}
+
 export default function Report() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -117,6 +166,32 @@ export default function Report() {
   const [recommendData,  setRecommendData]  = useState(null)
   const [loading,        setLoading]        = useState(true)
   const [error,          setError]          = useState(null)
+
+  const today = new Date()
+  const [selectedYear,  setSelectedYear]  = useState(today.getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1)
+
+  const isCurrentMonth =
+    selectedYear === today.getFullYear() && selectedMonth === today.getMonth() + 1
+
+  const goPrev = () => {
+    if (selectedMonth === 1) {
+      setSelectedYear(y => y - 1)
+      setSelectedMonth(12)
+    } else {
+      setSelectedMonth(m => m - 1)
+    }
+  }
+
+  const goNext = () => {
+    if (isCurrentMonth) return
+    if (selectedMonth === 12) {
+      setSelectedYear(y => y + 1)
+      setSelectedMonth(1)
+    } else {
+      setSelectedMonth(m => m + 1)
+    }
+  }
 
   useEffect(() => {
     if (location.state?.scrollTo === 'aiRecommend' && aiRecommendRef.current) {
@@ -130,6 +205,9 @@ export default function Report() {
     const fetchAll = async () => {
       try {
         setLoading(true)
+        setTxData(null)
+        setRecommendData(null)
+
         fetch(`http://localhost:8080/api/users/${USER_ID}/persona`)
           .then(r => r.json())
           .then(setPersona)
@@ -137,14 +215,14 @@ export default function Report() {
 
         const [lcRes, txRes] = await Promise.allSettled([
           fetch(`${API_BASE}/api/lifecycle/${USER_ID}`).then(r => r.json()),
-          fetch(`${API_BASE}/report/mydata/transaction?user_id=${USER_ID}`).then(r => r.json()),
+          fetch(`${API_BASE}/report/mydata/transaction?user_id=${USER_ID}&year=${selectedYear}&month=${selectedMonth}`).then(r => r.json()),
         ])
         if (lcRes.status === 'fulfilled') setLifecycle(lcRes.value)
         else setLifecycle({ lifecycle_stage: '생애주기 없음', description: '분석 결과를 불러올 수 없어요.' })
         if (txRes.status === 'fulfilled') setTxData(txRes.value)
 
         try {
-          const recRes = await fetch(`${API_BASE}/report/ai-insight?user_id=1`)
+          const recRes = await fetch(`${API_BASE}/report/ai-insight?user_id=1&year=${selectedYear}&month=${selectedMonth}`)
           const recData = await recRes.json()
           setRecommendData(recData)
         } catch {
@@ -157,7 +235,7 @@ export default function Report() {
       }
     }
     fetchAll()
-  }, [])
+  }, [selectedYear, selectedMonth])
 
   const categoryList = txData
     ? (() => {
@@ -195,7 +273,18 @@ export default function Report() {
     : null
 
   if (loading) return (
-    <div className="flex flex-col gap-4 pt-4 px-4 pb-24 animate-pulse">
+    <div className="flex flex-col h-full">
+      {/* 상단 고정 헤더 */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4">
+        <MonthNavigator
+          year={selectedYear}
+          month={selectedMonth}
+          isCurrentMonth={isCurrentMonth}
+          onPrev={goPrev}
+          onNext={goNext}
+        />
+      </div>
+      <div className="flex flex-col gap-4 pt-4 px-4 pb-24 animate-pulse overflow-y-auto">
       {/* 페르소나 배너 스켈레톤 */}
       <div className="rounded-2xl bg-gray-200 p-4 flex items-center gap-3 h-20">
         <div className="w-14 h-14 rounded-full bg-gray-300 shrink-0" />
@@ -279,11 +368,25 @@ export default function Report() {
           ))}
         </div>
       </div>
+      </div>
     </div>
   )
 
   return (
-    <div className="flex flex-col gap-4 pt-4 px-4 pb-24 overflow-y-auto">
+    <div className="flex flex-col h-full">
+      {/* 상단 고정 헤더 — 월 네비게이터 */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4">
+        <MonthNavigator
+          year={selectedYear}
+          month={selectedMonth}
+          isCurrentMonth={isCurrentMonth}
+          onPrev={goPrev}
+          onNext={goNext}
+        />
+      </div>
+
+      {/* 스크롤 콘텐츠 */}
+      <div className="flex flex-col gap-4 pt-4 px-4 pb-24 overflow-y-auto">
 
       {/* 페르소나 배너 */}
       <div className="rounded-2xl bg-[#1e73be] text-white p-4 flex items-center gap-3">
@@ -422,7 +525,7 @@ export default function Report() {
         </div>
       )}
 
-      {/* 주별 세로 막대 차트 */}
+      {/* ✅ 주별 세로 막대 차트 — 평균 레이블 겹침 수정 + 비중 제거 */}
       {txData?.weekly_price?.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
           <div className="flex justify-between items-center mb-3">
@@ -444,6 +547,7 @@ export default function Report() {
             const avg = Math.round(weeklyTotals.reduce((s, w) => s + w.total, 0) / weeklyTotals.length)
             const getBarColor = (total) => total > avg ? '#ef4444' : '#1e73be'
 
+            // ✅ 금액만 표시 (비중 제거)
             const getAmountLabel = (total) => `${Math.round(total / 10000)}만`
 
             return (
@@ -457,7 +561,7 @@ export default function Report() {
                     labelFormatter={(l) => `${l}주차`}
                     contentStyle={{ borderRadius: 8, fontSize: 12, border: '1px solid #e5e7eb' }}
                   />
-                  {/* 평균선 레이블을 SVG text로 직접 렌더링해 겹침 방지 */}
+                  {/* ✅ 평균선 레이블을 SVG text로 직접 렌더링해 겹침 방지 */}
                   <ReferenceLine
                     y={avg}
                     stroke="#f97316"
@@ -510,7 +614,7 @@ export default function Report() {
         </div>
       )}
 
-      {/* 시간대 패턴 */}
+      {/* ✅ 시간대 패턴 — 툴팁 금액으로 변경 */}
       {timeList.length > 0 && (
         <div className="rounded-2xl border border-gray-100 p-4 shadow-sm">
           <div className="flex justify-between items-center mb-3">
@@ -545,7 +649,7 @@ export default function Report() {
                 height={40}
               />
               <YAxis hide />
-              {/* 커스텀 툴팁으로 금액 메인 표시 */}
+              {/* ✅ 커스텀 툴팁으로 금액 메인 표시 */}
               <Tooltip
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null
@@ -564,6 +668,9 @@ export default function Report() {
                       </p>
                       <p style={{ color: '#1e73be', fontWeight: 700 }}>
                         {d.amount.toLocaleString()}원
+                      </p>
+                      <p style={{ color: '#9ca3af', fontSize: 10, marginTop: 1 }}>
+                        비중 {d.pct}%
                       </p>
                     </div>
                   )
@@ -608,6 +715,7 @@ export default function Report() {
         </div>
       )}
 
+      </div>
     </div>
   )
 }

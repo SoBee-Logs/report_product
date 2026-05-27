@@ -6,9 +6,17 @@ from app.models.schemas import AiInsightResponse
 router = APIRouter()
 
 @router.get("/report/mydata/transaction")
-def get_transaction(user_id: int = Query(...)):
-    return get_transaction_report(user_id)
+def get_transaction(
+    user_id: int = Query(...),
+    year:    int = Query(None),   
+    month:   int = Query(None),   
+):
+    return get_transaction_report(user_id, year, month)
 
 @router.get("/report/ai-insight", response_model=AiInsightResponse)
-async def ai_insight(user_id: int = Query(...)):
-    return await get_ai_insight(user_id)
+async def ai_insight(
+    user_id: int = Query(...),
+    year:    int = Query(None),   
+    month:   int = Query(None),   
+):
+    return await get_ai_insight(user_id, year, month)
