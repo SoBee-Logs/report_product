@@ -4,10 +4,9 @@ sobee_daily_pipeline
 매일 새벽 2시 실행. 전체 유저 대상.
 
 스케줄 (월~금):
-  화~금: Step1. transactions 업데이트 (최근 3일치)
-  월요일: Step1. transactions 업데이트
-          Step2. 사진 ↔ 결제 매핑 → persona_transaction 최신화
-          Step3. 전주 Mon~Sun 기준 페르소나 생성 → S3 업로드 → users 업데이트
+  매일: Step1. transactions 업데이트 (최근 3일치)
+        Step2. 사진 ↔ 결제 매핑 → persona_transaction 최신화
+  월요일만: Step3. 전주 Mon~Sun 기준 페르소나 생성 → S3 업로드 → users 업데이트
 
 * 최초 가입 시 초기 sync(30일)는 /internal/accounts/register 호출 시 자동 트리거됨.
 * 일별 sync는 days=3 (주말 포함 안전 마진). 해당 기간만 DELETE → INSERT로 멱등 보장.
@@ -93,7 +92,7 @@ def task_persona_all(**ctx):
 
 with DAG(
     dag_id="sobee_daily_pipeline",
-    description="매일 새벽 2시 — sync(매일) → mapping → persona(월요일만)",
+    description="매일 새벽 2시 — sync → mapping(매일) → persona(월요일만)",
     schedule="0 2 * * 1-5",  # 월~금
     start_date=datetime(2026, 1, 1),
     catchup=False,
@@ -120,4 +119,4 @@ with DAG(
         python_callable=task_persona_all,
     )
 
-    sync >> check_monday >> mapping >> persona
+    sync >> mapping >> check_monday >> persona
