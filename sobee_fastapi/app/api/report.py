@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Query
 from app.services.report_service import get_transaction_report
 from app.services.ai_insight_service import get_ai_insight
+from app.services.lifecycle_service import get_lifecycle
+from app.services.question_service import generate_recommend_questions
 from app.models.schemas import AiInsightResponse
 
 router = APIRouter()
