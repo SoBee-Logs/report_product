@@ -175,6 +175,7 @@ export default function Report() {
 
   const top3 = categoryList.slice(0, 3)
 
+  // ✅ amount 필드 추가
   const timeList = txData
     ? (() => {
         const total = Object.values(txData.timepattern_price).reduce((a, b) => a + b, 0)
@@ -183,6 +184,7 @@ export default function Report() {
           pct: txData.timepattern_price[label]
             ? Math.round((txData.timepattern_price[label] / total) * 100)
             : 0,
+          amount: txData.timepattern_price[label] ?? 0,
           icon: TIME_ICONS[label],
         }))
       })()
@@ -364,10 +366,8 @@ export default function Report() {
             </button>
           </div>
 
-          {/* 도넛 차트 중앙 배치 */}
           <CategoryDonut categoryList={categoryList} />
 
-          {/* 구분선 + TOP3 막대 (금액) */}
           {top3.length > 0 && (
             <>
               <div className="border-t border-gray-100 my-3" />
@@ -444,21 +444,11 @@ export default function Report() {
             const avg = Math.round(weeklyTotals.reduce((s, w) => s + w.total, 0) / weeklyTotals.length)
             const getBarColor = (total) => total > avg ? '#ef4444' : '#1e73be'
 
-            const getChangeLabel = (total, idx) => {
-              const base = `${Math.round(total / 10000)}만`
-              if (idx === 0) return base
-              const prev = weeklyTotals[idx - 1].total
-              if (prev === 0) return base
-              const pct = Math.round(((total - prev) / prev) * 100)
-              if (pct === 0) return base
-              const arrow = pct > 0 ? '↑' : '↓'
-              const color = pct > 0 ? '#ef4444' : '#22c55e'
-              return `${base} ${arrow}${Math.abs(pct)}%`
-            }
+            const getAmountLabel = (total) => `${Math.round(total / 10000)}만`
 
             return (
               <ResponsiveContainer width="100%" height={190}>
-                <BarChart data={weeklyTotals} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
+                <BarChart data={weeklyTotals} margin={{ top: 28, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                   <XAxis dataKey="week" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis hide />
@@ -467,12 +457,27 @@ export default function Report() {
                     labelFormatter={(l) => `${l}주차`}
                     contentStyle={{ borderRadius: 8, fontSize: 12, border: '1px solid #e5e7eb' }}
                   />
+                  {/* 평균선 레이블을 SVG text로 직접 렌더링해 겹침 방지 */}
                   <ReferenceLine
                     y={avg}
                     stroke="#f97316"
                     strokeDasharray="4 3"
                     strokeWidth={1.5}
-                    label={{ value: `평균 ${Math.round(avg / 10000)}만`, position: 'insideTopRight', fontSize: 10, fill: '#f97316', fontWeight: 600 }}
+                    label={({ viewBox }) => {
+                      const { x, y, width } = viewBox
+                      return (
+                        <text
+                          x={x + width - 4}
+                          y={y - 5}
+                          textAnchor="end"
+                          fontSize={10}
+                          fill="#f97316"
+                          fontWeight={600}
+                        >
+                          평균 {Math.round(avg / 10000)}만
+                        </text>
+                      )
+                    }}
                   />
                   <Bar dataKey="total" radius={[6, 6, 0, 0]} barSize={28}>
                     {weeklyTotals.map((entry, idx) => (
@@ -482,22 +487,17 @@ export default function Report() {
                         opacity={0.85}
                       />
                     ))}
+                    {/* ✅ 금액만 표시 */}
                     <LabelList
                       dataKey="total"
                       position="top"
-                      content={({ x, y, width, value, index }) => {
+                      content={({ x, y, width, value }) => {
                         if (!value) return null
-                        const label = getChangeLabel(value, index)
-                        const parts = label.split(' ')
-                        const hasChange = parts.length > 1
-                        const changeText = hasChange ? parts[1] : null
-                        const isUp = changeText?.startsWith('↑')
                         return (
                           <text x={x + width / 2} y={y - 4} textAnchor="middle">
-                            <tspan fontSize={10} fill="#374151" fontWeight={600}>{parts[0]}</tspan>
-                            {hasChange && (
-                              <tspan fontSize={9} fill={isUp ? '#ef4444' : '#22c55e'} fontWeight={700}> {changeText}</tspan>
-                            )}
+                            <tspan fontSize={10} fill="#374151" fontWeight={600}>
+                              {getAmountLabel(value)}
+                            </tspan>
                           </text>
                         )
                       }}
@@ -545,10 +545,29 @@ export default function Report() {
                 height={40}
               />
               <YAxis hide />
+              {/* 커스텀 툴팁으로 금액 메인 표시 */}
               <Tooltip
-                formatter={(v) => [`비중 ${v}%`, '']}
-                labelFormatter={(l) => `${TIME_ICONS[l]} ${l}`}
-                contentStyle={{ borderRadius: 8, fontSize: 12, border: '1px solid #e5e7eb' }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null
+                  const d = payload[0].payload
+                  return (
+                    <div style={{
+                      borderRadius: 8,
+                      fontSize: 12,
+                      border: '1px solid #e5e7eb',
+                      background: 'white',
+                      padding: '6px 10px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    }}>
+                      <p style={{ fontWeight: 600, color: '#374151', marginBottom: 2 }}>
+                        {d.icon} {d.label}
+                      </p>
+                      <p style={{ color: '#1e73be', fontWeight: 700 }}>
+                        {d.amount.toLocaleString()}원
+                      </p>
+                    </div>
+                  )
+                }}
               />
               <Area
                 type="monotone"
